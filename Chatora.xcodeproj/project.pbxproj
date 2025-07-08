@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C6458E232E1CE42400B35B82 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E222E1CE42400B35B82 /* FirebaseAuth */; };
+		C6458E252E1CE42400B35B82 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E242E1CE42400B35B82 /* FirebaseCore */; };
+		C6458E272E1CE42400B35B82 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E262E1CE42400B35B82 /* FirebaseDatabase */; };
+		C6458E292E1CE42400B35B82 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E282E1CE42400B35B82 /* FirebaseFirestore */; };
+		C6458E2B2E1CE42400B35B82 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E2A2E1CE42400B35B82 /* FirebaseStorage */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C668A94E2E1BBD2800E230C5 /* Chatora.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatora.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +31,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6458E272E1CE42400B35B82 /* FirebaseDatabase in Frameworks */,
+				C6458E292E1CE42400B35B82 /* FirebaseFirestore in Frameworks */,
+				C6458E252E1CE42400B35B82 /* FirebaseCore in Frameworks */,
+				C6458E2B2E1CE42400B35B82 /* FirebaseStorage in Frameworks */,
+				C6458E232E1CE42400B35B82 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +78,11 @@
 			);
 			name = Chatora;
 			packageProductDependencies = (
+				C6458E222E1CE42400B35B82 /* FirebaseAuth */,
+				C6458E242E1CE42400B35B82 /* FirebaseCore */,
+				C6458E262E1CE42400B35B82 /* FirebaseDatabase */,
+				C6458E282E1CE42400B35B82 /* FirebaseFirestore */,
+				C6458E2A2E1CE42400B35B82 /* FirebaseStorage */,
 			);
 			productName = Chatora;
 			productReference = C668A94E2E1BBD2800E230C5 /* Chatora.app */;
@@ -94,6 +112,9 @@
 			);
 			mainGroup = C668A9452E1BBD2800E230C5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C668A94F2E1BBD2800E230C5 /* Products */;
 			projectDirPath = "";
@@ -322,6 +343,45 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.15.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C6458E222E1CE42400B35B82 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		C6458E242E1CE42400B35B82 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		C6458E262E1CE42400B35B82 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		C6458E282E1CE42400B35B82 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		C6458E2A2E1CE42400B35B82 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6458E212E1CE42400B35B82 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C668A9462E1BBD2800E230C5 /* Project object */;
 }
