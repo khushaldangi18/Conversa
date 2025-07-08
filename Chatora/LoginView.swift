@@ -15,6 +15,7 @@ struct LoginView: View {
     @State private var showingAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var isLoggedIn: Bool = false
+    @State private var showingRegisterView: Bool = false
 
     var body: some View {
         NavigationView {
@@ -57,7 +58,10 @@ struct LoginView: View {
                                     .foregroundColor(.primary)
 
                                 TextField("Enter your email", text: $email)
-                                    .textFieldStyle(CustomTextFieldStyle())
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(12)
                             }
 
                             // Password Field
@@ -69,10 +73,12 @@ struct LoginView: View {
                                 HStack {
                                     if isSecureField {
                                         SecureField("Enter your password", text: $password)
-                                            .textFieldStyle(CustomTextFieldStyle())
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
                                     } else {
                                         TextField("Enter your password", text: $password)
-                                            .textFieldStyle(CustomTextFieldStyle())
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
                                     }
 
                                     Button(action: {
@@ -83,6 +89,8 @@ struct LoginView: View {
                                             .padding(.trailing, 8)
                                     }
                                 }
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
@@ -145,8 +153,8 @@ struct LoginView: View {
 
                             // Sign Up Button
                             Button(action: {
-                                // Handle sign up navigation
-                                showSignUpAlert()
+                                // Navigate to register view
+                                showingRegisterView = true
                             }) {
                                 Text("Create New Account")
                                     .font(.headline)
@@ -179,6 +187,9 @@ struct LoginView: View {
             Text("Welcome to Chatora!")
                 .font(.largeTitle)
                 .padding()
+        }
+        .sheet(isPresented: $showingRegisterView) {
+            RegisterView()
         }
     }
 
@@ -225,21 +236,10 @@ struct LoginView: View {
         showAlert(message: "Forgot password functionality will be implemented soon.")
     }
 
-    private func showSignUpAlert() {
-        showAlert(message: "Sign up functionality will be implemented soon.")
-    }
+
 }
 
-// MARK: - Custom Text Field Style
-struct CustomTextFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<Self._Label>) -> some View {
-        configuration
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
-    }
-}
+
 
 #Preview {
     LoginView()
