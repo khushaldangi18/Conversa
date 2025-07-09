@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct LoginView: View {
+    @StateObject private var authManager = AuthenticationManager()
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isSecureField: Bool = true
@@ -101,8 +102,7 @@ struct LoginView: View {
                             HStack {
                                 Spacer()
                                 Button("Forgot Password?") {
-                                    // Handle forgot password
-                                    showForgotPasswordAlert()
+                                    resetPassword()
                                 }
                                 .font(.footnote)
                                 .foregroundColor(.blue)
@@ -208,15 +208,53 @@ struct LoginView: View {
 
         isLoading = true
 
-        // Simulate login process (replace with actual authentication)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            isLoading = false
+        // Firebase Authentication
+        Task {
+            do {
+                let user = try await authManager.signIn(email: email, password: password)
 
-            // For demo purposes, accept any valid email/password combination
-            if email.contains("@") && password.count >= 6 {
-                isLoggedIn = true
-            } else {
-                showAlert(message: "Invalid email or password. Please try again.")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.isLoggedIn = true
+                }
+
+                print("User logged in successfully: \(user.email)")
+
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let authError = error as? AuthError {
+                        self.showAlert(message: authError.localizedDescription ?? "Login failed")
+                    } else {
+                        self.showAlert(message: "Login failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+
+    private func resetPassword() {
+        guard isValidEmail(email) else {
+            showAlert(message: "Please enter a valid email address first")
+            return
+        }
+
+        Task {
+            do {
+                try await authManager.resetPassword(email: email)
+
+                DispatchQueue.main.async {
+                    self.showAlert(message: "Password reset email sent to \(self.email)")
+                }
+
+            } catch {
+                DispatchQueue.main.async {
+                    if let authError = error as? AuthError {
+                        self.showAlert(message: authError.localizedDescription ?? "Failed to send password reset email")
+                    } else {
+                        self.showAlert(message: "Failed to send password reset email: \(error.localizedDescription)")
+                    }
+                }
             }
         }
     }
@@ -232,9 +270,7 @@ struct LoginView: View {
         showingAlert = true
     }
 
-    private func showForgotPasswordAlert() {
-        showAlert(message: "Forgot password functionality will be implemented soon.")
-    }
+
 
 
 }
@@ -244,3 +280,4 @@ struct LoginView: View {
 #Preview {
     LoginView()
 }
+ 

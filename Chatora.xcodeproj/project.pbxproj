@@ -12,10 +12,20 @@
 		C6458E272E1CE42400B35B82 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E262E1CE42400B35B82 /* FirebaseDatabase */; };
 		C6458E292E1CE42400B35B82 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E282E1CE42400B35B82 /* FirebaseFirestore */; };
 		C6458E2B2E1CE42400B35B82 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = C6458E2A2E1CE42400B35B82 /* FirebaseStorage */; };
+		C6E849F52E1E523F005118AB /* KavishSynop.pdf in Resources */ = {isa = PBXBuildFile; fileRef = C6E849F42E1E523F005118AB /* KavishSynop.pdf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		C668A94E2E1BBD2800E230C5 /* Chatora.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatora.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6E847DF2E1E16D6005118AB /* animator.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = animator.xcodeproj; sourceTree = "<group>"; };
+		C6E847EA2E1E16D6005118AB /* Chatora.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Chatora.xcodeproj; sourceTree = "<group>"; };
+		C6E847F42E1E16D6005118AB /* chatori.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = chatori.xcodeproj; sourceTree = "<group>"; };
+		C6E848022E1E16D6005118AB /* Doctor.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Doctor.xcodeproj; sourceTree = "<group>"; };
+		C6E848162E1E16D6005118AB /* Dorondo.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Dorondo.xcodeproj; sourceTree = "<group>"; };
+		C6E8483A2E1E16D6005118AB /* Gram.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Gram.xcodeproj; sourceTree = "<group>"; };
+		C6E848452E1E16D6005118AB /* SixCodes.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SixCodes.xcodeproj; sourceTree = "<group>"; };
+		C6E848512E1E16D6005118AB /* supabasnew.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = supabasnew.xcodeproj; sourceTree = "<group>"; };
+		C6E849F42E1E523F005118AB /* KavishSynop.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = KavishSynop.pdf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -45,6 +55,7 @@
 		C668A9452E1BBD2800E230C5 = {
 			isa = PBXGroup;
 			children = (
+				C6E849F42E1E523F005118AB /* KavishSynop.pdf */,
 				C668A9502E1BBD2800E230C5 /* Chatora */,
 				C668A94F2E1BBD2800E230C5 /* Products */,
 			);
@@ -54,6 +65,62 @@
 			isa = PBXGroup;
 			children = (
 				C668A94E2E1BBD2800E230C5 /* Chatora.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E848542E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E848562E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E848582E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E8485A2E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E8485C2E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E8485E2E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E848602E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6E848622E1E16D6005118AB /* Products */ = {
+			isa = PBXGroup;
+			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -118,6 +185,40 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C668A94F2E1BBD2800E230C5 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = C6E848542E1E16D6005118AB /* Products */;
+					ProjectRef = C6E847DF2E1E16D6005118AB /* animator.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E8485E2E1E16D6005118AB /* Products */;
+					ProjectRef = C6E847EA2E1E16D6005118AB /* Chatora.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E8485C2E1E16D6005118AB /* Products */;
+					ProjectRef = C6E847F42E1E16D6005118AB /* chatori.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E848622E1E16D6005118AB /* Products */;
+					ProjectRef = C6E848022E1E16D6005118AB /* Doctor.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E8485A2E1E16D6005118AB /* Products */;
+					ProjectRef = C6E848162E1E16D6005118AB /* Dorondo.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E848562E1E16D6005118AB /* Products */;
+					ProjectRef = C6E8483A2E1E16D6005118AB /* Gram.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E848582E1E16D6005118AB /* Products */;
+					ProjectRef = C6E848452E1E16D6005118AB /* SixCodes.xcodeproj */;
+				},
+				{
+					ProductGroup = C6E848602E1E16D6005118AB /* Products */;
+					ProjectRef = C6E848512E1E16D6005118AB /* supabasnew.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				C668A94D2E1BBD2800E230C5 /* Chatora */,
@@ -130,6 +231,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6E849F52E1E523F005118AB /* KavishSynop.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,8 +380,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -306,8 +408,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

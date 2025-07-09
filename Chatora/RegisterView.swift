@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct RegisterView: View {
+    @StateObject private var authManager = AuthenticationManager()
     @State private var fullName: String = ""
     @State private var username: String = ""
     @State private var email: String = ""
@@ -19,7 +20,6 @@ struct RegisterView: View {
     @State private var showingAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var isRegistered: Bool = false
-    @State private var agreeToTerms: Bool = false
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
@@ -186,38 +186,38 @@ struct RegisterView: View {
                             }
 
                             // Terms and Conditions
-                            HStack(alignment: .top, spacing: 12) {
-                                Button(action: {
-                                    agreeToTerms.toggle()
-                                }) {
-                                    Image(systemName: agreeToTerms ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(agreeToTerms ? .green : .gray)
-                                        .font(.title2)
-                                }
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("I agree to the Terms of Service and Privacy Policy")
-                                        .font(.footnote)
-                                        .foregroundColor(.primary)
-
-                                    HStack(spacing: 16) {
-                                        Button("Terms of Service") {
-                                            showTermsAlert()
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-
-                                        Button("Privacy Policy") {
-                                            showPrivacyAlert()
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    }
-                                }
-
-                                Spacer()
-                            }
-                            .padding(.vertical, 8)
+//                            HStack(alignment: .top, spacing: 12) {
+//                                Button(action: {
+//                                    agreeToTerms.toggle()
+//                                }) {
+//                                    Image(systemName: agreeToTerms ? "checkmark.square.fill" : "square")
+//                                        .foregroundColor(agreeToTerms ? .green : .gray)
+//                                        .font(.title2)
+//                                }
+//
+//                                VStack(alignment: .leading, spacing: 4) {
+//                                    Text("I agree to the Terms of Service and Privacy Policy")
+//                                        .font(.footnote)
+//                                        .foregroundColor(.primary)
+//
+//                                    HStack(spacing: 16) {
+//                                        Button("Terms of Service") {
+//                                            showTermsAlert()
+//                                        }
+//                                        .font(.caption)
+//                                        .foregroundColor(.blue)
+//
+//                                        Button("Privacy Policy") {
+//                                            showPrivacyAlert()
+//                                        }
+//                                        .font(.caption)
+//                                        .foregroundColor(.blue)
+//                                    }
+//                                }
+//
+//                                Spacer()
+//                            }
+//                            .padding(.vertical, 8)
 
                             // Register Button
                             Button(action: {
@@ -254,7 +254,7 @@ struct RegisterView: View {
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
 
-                                Button("Sign In") {
+                                Button("Sign In"){
                                     presentationMode.wrappedValue.dismiss()
                                 }
                                 .font(.footnote)
@@ -319,12 +319,32 @@ struct RegisterView: View {
 
         isLoading = true
 
-        // Simulate registration process (replace with actual authentication)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            isLoading = false
+        Task {
+            do {
+                let user = try await authManager.signUp(
+                    email: email,
+                    password: password,
+                    fullName: fullName,
+                    username: username
+                )
 
-            // For demo purposes, accept any valid form
-            isRegistered = true
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.isRegistered = true
+                }
+
+                print("User registered successfully: \(user.email)")
+
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    if let authError = error as? AuthError {
+                        self.showAlert(message: authError.localizedDescription ?? "Registration failed")
+                    } else {
+                        self.showAlert(message: "Registration failed: \(error.localizedDescription)")
+                    }
+                }
+            }
         }
     }
 
@@ -333,8 +353,7 @@ struct RegisterView: View {
                isValidUsername(username) &&
                isValidEmail(email) &&
                isValidPassword(password) &&
-               password == confirmPassword &&
-               agreeToTerms
+               password == confirmPassword 
     }
 
     private func isValidEmail(_ email: String) -> Bool {
