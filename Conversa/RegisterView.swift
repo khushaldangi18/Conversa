@@ -9,7 +9,7 @@ import SwiftUI
 
 
 struct RegisterView: View {
-    @StateObject private var authManager = AuthenticationManager()
+    @ObservedObject private var authManager = AuthenticationManager.shared
     @State private var fullName: String = ""
     @State private var username: String = ""
     @State private var email: String = ""

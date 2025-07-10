@@ -9,15 +9,15 @@ import SwiftUI
 import FirebaseAuth
 
 struct LoginView: View {
-    @StateObject private var authManager = AuthenticationManager()
+    @ObservedObject private var authManager = AuthenticationManager.shared
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isSecureField: Bool = true
     @State private var isLoading: Bool = false
     @State private var showingAlert: Bool = false
     @State private var alertMessage: String = ""
-    @State private var isLoggedIn: Bool = false
     @State private var showingRegisterView: Bool = false
+    @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         NavigationView {
@@ -177,17 +177,15 @@ struct LoginView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
         .alert("Alert", isPresented: $showingAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
         }
-        .sheet(isPresented: $isLoggedIn) {
-            // Navigate to main chat view after successful login
-            Text("Welcome to Chatora!")
-                .font(.largeTitle)
-                .padding()
+        .onChange(of: authManager.isAuthenticated) { isAuthenticated in
+            if isAuthenticated {
+                presentationMode.wrappedValue.dismiss()
+            }
         }
         .sheet(isPresented: $showingRegisterView) {
             RegisterView()
@@ -216,7 +214,6 @@ struct LoginView: View {
 
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    self.isLoggedIn = true
                 }
 
                 print("User logged in successfully: \(user.email)")

@@ -22,10 +22,14 @@ struct ChatUser {
 class AuthenticationManager: ObservableObject {
     @Published var user: ChatUser?
     @Published var isAuthenticated = false
+    @Published var isLoading = true
 
     private var authStateListener: AuthStateDidChangeListenerHandle?
 
-    init() {
+    static let shared = AuthenticationManager()
+
+    private init() {
+        print("🔐 AuthenticationManager initializing...")
         setupAuthStateListener()
     }
 
@@ -38,8 +42,10 @@ class AuthenticationManager: ObservableObject {
     // MARK: - Auth State Listener
     private func setupAuthStateListener() {
         authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            DispatchQueue.main.async {
+            // Add a minimum loading time to ensure loading screen is visible
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if let user = user {
+                    print("🔐 User authenticated: \(user.email ?? "unknown")")
                     self?.user = ChatUser(
                         uid: user.uid,
                         email: user.email ?? "",
@@ -48,9 +54,12 @@ class AuthenticationManager: ObservableObject {
                     )
                     self?.isAuthenticated = true
                 } else {
+                    print("🔐 User signed out")
                     self?.user = nil
                     self?.isAuthenticated = false
                 }
+                print("🔐 Auth loading complete")
+                self?.isLoading = false
             }
         }
     }
