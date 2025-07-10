@@ -1,6 +1,6 @@
 //
 //  LoginView.swift
-//  Chatora
+//  Conversa
 //
 //  Created by FCP 21 on 08/07/25.
 //
@@ -36,7 +36,7 @@ struct LoginView: View {
                                 .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
 
                             // App Name
-                            Text("Converse")
+                            Text("Conversa")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)

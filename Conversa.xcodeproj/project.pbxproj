@@ -16,7 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		C668A94E2E1BBD2800E230C5 /* Chatora.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chatora.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C668A94E2E1BBD2800E230C5 /* Conversa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Conversa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6E847DF2E1E16D6005118AB /* animator.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = animator.xcodeproj; sourceTree = "<group>"; };
 		C6E847EA2E1E16D6005118AB /* Chatora.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Chatora.xcodeproj; sourceTree = "<group>"; };
 		C6E847F42E1E16D6005118AB /* chatori.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = chatori.xcodeproj; sourceTree = "<group>"; };
@@ -29,9 +29,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		C668A9502E1BBD2800E230C5 /* Chatora */ = {
+		C668A9502E1BBD2800E230C5 /* Conversa */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Chatora;
+			path = Conversa;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -56,7 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				C6E849F42E1E523F005118AB /* KavishSynop.pdf */,
-				C668A9502E1BBD2800E230C5 /* Chatora */,
+				C668A9502E1BBD2800E230C5 /* Conversa */,
 				C668A94F2E1BBD2800E230C5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -64,7 +64,7 @@
 		C668A94F2E1BBD2800E230C5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				C668A94E2E1BBD2800E230C5 /* Chatora.app */,
+				C668A94E2E1BBD2800E230C5 /* Conversa.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,9 +128,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		C668A94D2E1BBD2800E230C5 /* Chatora */ = {
+		C668A94D2E1BBD2800E230C5 /* Conversa */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C668A95C2E1BBD2C00E230C5 /* Build configuration list for PBXNativeTarget "Chatora" */;
+			buildConfigurationList = C668A95C2E1BBD2C00E230C5 /* Build configuration list for PBXNativeTarget "Conversa" */;
 			buildPhases = (
 				C668A94A2E1BBD2800E230C5 /* Sources */,
 				C668A94B2E1BBD2800E230C5 /* Frameworks */,
@@ -141,9 +141,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				C668A9502E1BBD2800E230C5 /* Chatora */,
+				C668A9502E1BBD2800E230C5 /* Conversa */,
 			);
-			name = Chatora;
+			name = Conversa;
 			packageProductDependencies = (
 				C6458E222E1CE42400B35B82 /* FirebaseAuth */,
 				C6458E242E1CE42400B35B82 /* FirebaseCore */,
@@ -152,7 +152,7 @@
 				C6458E2A2E1CE42400B35B82 /* FirebaseStorage */,
 			);
 			productName = Chatora;
-			productReference = C668A94E2E1BBD2800E230C5 /* Chatora.app */;
+			productReference = C668A94E2E1BBD2800E230C5 /* Conversa.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -170,7 +170,7 @@
 					};
 				};
 			};
-			buildConfigurationList = C668A9492E1BBD2800E230C5 /* Build configuration list for PBXProject "Chatora" */;
+			buildConfigurationList = C668A9492E1BBD2800E230C5 /* Build configuration list for PBXProject "Conversa" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -221,7 +221,7 @@
 			);
 			projectRoot = "";
 			targets = (
-				C668A94D2E1BBD2800E230C5 /* Chatora */,
+				C668A94D2E1BBD2800E230C5 /* Conversa */,
 			);
 		};
 /* End PBXProject section */
@@ -377,10 +377,11 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Chatora/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Conversa;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIRequiresFullScreen = NO;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -405,10 +406,11 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Chatora/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Conversa;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIRequiresFullScreen = NO;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -426,7 +428,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		C668A9492E1BBD2800E230C5 /* Build configuration list for PBXProject "Chatora" */ = {
+		C668A9492E1BBD2800E230C5 /* Build configuration list for PBXProject "Conversa" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C668A95A2E1BBD2C00E230C5 /* Debug */,
@@ -435,7 +437,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C668A95C2E1BBD2C00E230C5 /* Build configuration list for PBXNativeTarget "Chatora" */ = {
+		C668A95C2E1BBD2C00E230C5 /* Build configuration list for PBXNativeTarget "Conversa" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C668A95D2E1BBD2C00E230C5 /* Debug */,
