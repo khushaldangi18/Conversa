@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct RegisterView: View {
     @StateObject private var authManager = AuthenticationManager()
     @State private var fullName: String = ""
@@ -20,6 +21,9 @@ struct RegisterView: View {
     @State private var showingAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var isRegistered: Bool = false
+    @State private var agreeToTerms: Bool = false
+    @State var showImagePicker = false
+    @State private var selectedImage: UIImage?
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
@@ -32,11 +36,32 @@ struct RegisterView: View {
                             Spacer()
                                 .frame(height: geometry.size.height * 0.05)
 
-                            // App Logo/Icon
-                            Image(systemName: "person.crop.circle.badge.plus")
-                                .font(.system(size: 60))
-                                .foregroundColor(.green)
-                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
+                            // Profile Image Picker
+                            Button{
+                                showImagePicker.toggle()
+                            } label: {
+                                if let selectedImage = selectedImage {
+                                    Image(uiImage: selectedImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color.green, lineWidth: 3)
+                                        )
+                                        .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
+                                } else {
+                                    Image(systemName: "person.crop.circle.badge.plus")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.green)
+                                        .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
+                            }
+
+                            Text("Tap to add profile photo")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
 
                             // Title
                             Text("Create Account")
@@ -307,6 +332,9 @@ struct RegisterView: View {
             }
             .padding()
         }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
     }
 
     // MARK: - Helper Functions
@@ -389,7 +417,42 @@ struct RegisterView: View {
     }
 }
 
+struct ImagePicker: UIViewControllerRepresentable {
+    
+    @Binding var image: UIImage?
+    private let controller = UIImagePickerController()
+    
+    func makeCoordinator() -> Coordinator{
+        return Coordinator(parent: self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate,
+                       UINavigationControllerDelegate{
+        let parent: ImagePicker
+        
+        init(parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]){
+            parent.image = info[.originalImage] as? UIImage
+            picker.dismiss(animated:true)
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController){
+            picker.dismiss(animated: true)
+        }
+    }
 
+    func makeUIViewController(context: Context) -> some UIViewController {
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+    }
+}
 
 #Preview {
     RegisterView()
