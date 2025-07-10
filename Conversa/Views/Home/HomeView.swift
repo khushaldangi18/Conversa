@@ -16,10 +16,10 @@ struct HomeView: View {
         NavigationView {
             VStack(spacing: 20) {
                 // Welcome Header
-                WelcomeHeaderView(
-                    userName: authManager.user?.fullName,
-                    userEmail: authManager.user?.email
-                )
+//                WelcomeHeaderView(
+//                    userName: authManager.user?.fullName,
+//                    userEmail: authManager.user?.email
+//                )
                 
                 Spacer()
                 

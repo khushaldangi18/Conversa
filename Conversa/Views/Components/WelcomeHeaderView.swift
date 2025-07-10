@@ -30,6 +30,16 @@ struct WelcomeHeaderView: View {
                     .font(.headline)
                     .foregroundColor(.secondary)
             }
+            HStack(spacing: 2){
+                Text("Your account has been created successfully")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(.green)
+            }
         }
         .padding(.top, 40)
     }
@@ -39,14 +49,14 @@ struct WelcomeHeaderView: View {
     VStack {
         WelcomeHeaderView(userName: "John Doe", userEmail: "john@example.com")
         
-        Divider()
-            .padding()
-        
-        WelcomeHeaderView(userName: nil, userEmail: "jane@example.com")
-        
-        Divider()
-            .padding()
-        
-        WelcomeHeaderView(userName: "", userEmail: "test@example.com")
+//        Divider()
+//            .padding()
+//        
+//        WelcomeHeaderView(userName: nil, userEmail: "jane@example.com")
+//        
+//        Divider()
+//            .padding()
+//        
+//        WelcomeHeaderView(userName: "", userEmail: "test@example.com")
     }
 }

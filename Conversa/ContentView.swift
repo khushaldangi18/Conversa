@@ -32,12 +32,12 @@ struct ContentView: View {
             }
         }
         .onChange(of: authManager.isAuthenticated) { isAuthenticated in
-            print("📱 ContentView: Auth state changed to \(isAuthenticated), loading: \(authManager.isLoading)")
+            print("ContentView: Auth state changed to \(isAuthenticated), loading: \(authManager.isLoading)")
             if !isAuthenticated && !authManager.isLoading {
-                print("📱 ContentView: Showing login view (auth changed)")
+                print("ContentView: Showing login view (auth changed)")
                 showingLoginView = true
             } else if isAuthenticated {
-                print("📱 ContentView: Hiding login view (authenticated)")
+                print("ContentView: Hiding login view (authenticated)")
                 showingLoginView = false
             }
         }

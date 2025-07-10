@@ -305,19 +305,11 @@ struct RegisterView: View {
         .sheet(isPresented: $isRegistered) {
             // Navigate to welcome screen after successful registration
             VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.green)
-
-                Text("Welcome to Chatora!")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-
-                Text("Your account has been created successfully")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-
+                WelcomeHeaderView(
+                    userName: authManager.user?.fullName,
+                    userEmail: authManager.user?.email
+                )
+                
                 Button("Get Started") {
                     isRegistered = false
                     presentationMode.wrappedValue.dismiss()
