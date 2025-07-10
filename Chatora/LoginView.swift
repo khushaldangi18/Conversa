@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct LoginView: View {
     @State private var email: String = ""
@@ -34,7 +35,7 @@ struct LoginView: View {
                                 .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
 
                             // App Name
-                            Text("Chatora")
+                            Text("Converse")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
