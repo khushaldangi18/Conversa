@@ -1,24 +1,16 @@
-//
-//  ChatoraApp.swift
-//  Chatora
-//
-//  Created by FCP 21 on 07/07/25.
-//
-
 import SwiftUI
 import Firebase
 
-
 @main
-struct ChatoraApp: App {
-
+struct ConversaApp: App {
     init() {
+        // Configure Firebase only once when the app starts
         FirebaseApp.configure()
     }
-
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AuthView()
         }
     }
 }
