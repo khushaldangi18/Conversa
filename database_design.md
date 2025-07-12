@@ -1,6 +1,6 @@
-# Firestore Database Structure
+# Firebase Database Structure
 
-## Collections
+## Firestore Collections
 
 ### users
 - Document ID: `{uid}` (Firebase Auth UID)
@@ -12,7 +12,7 @@
   - `lastActive`: Timestamp
   - `fcmToken`: String (for notifications)
   - `blockedUsers`: Array<String> (UIDs of blocked users)
-  - `status`: String (online/offline/away)
+  - `statusRef`: String (reference to Realtime Database path)
 
 ### chats
 - Document ID: Auto-generated
@@ -45,3 +45,12 @@
 
 ### /chat_media/{chatId}/{messageId}_{timestamp}.{extension}
 - Shared images and audio files
+
+## Realtime Database Paths
+
+### /status/{uid}
+- `state`: String (online/offline/away)
+- `last_changed`: ServerValue.TIMESTAMP
+
+### /connections/{uid}
+- Connection data for presence system
