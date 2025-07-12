@@ -6,14 +6,16 @@ import FirebaseFirestore
 
 
 class FirebaseManager: NSObject {
+    static let shared = FirebaseManager()
     let auth: Auth
     let storage: Storage
-    static let shared = FirebaseManager()
+    let firestore: Firestore
     
     override init() {
         // Remove the Firebase configuration since it's already done in ConversaApp.swift
         self.auth = Auth.auth()
         self.storage = Storage.storage()
+        self.firestore = Firestore.firestore()
         super.init()
     }
 }
@@ -72,6 +74,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var loginStatusMessage = ""
+    @State private var isLoggedIn = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -109,6 +112,9 @@ struct LoginView: View {
             }
         }
         .padding(.horizontal)
+        .fullScreenCover(isPresented: $isLoggedIn) {
+            ContentView()
+        }
     }
     
     func login() {
@@ -121,6 +127,9 @@ struct LoginView: View {
             
             self.loginStatusMessage = "Successfully logged in as \(result?.user.email ?? "")"
             print(self.loginStatusMessage)
+            
+            // Set isLoggedIn to true to trigger navigation to ContentView
+            self.isLoggedIn = true
         }
     }
 }
@@ -134,6 +143,7 @@ struct RegisterView: View {
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var isCheckingUsername = false
+    @State private var isLoggedIn = false
     
     // Validation states
     @State private var isUsernameValid = true
@@ -279,6 +289,9 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .fullScreenCover(isPresented: $isLoggedIn) {
+            ContentView()
+        }
     }
     
     private func checkUsernameUniqueness() {
@@ -290,7 +303,8 @@ struct RegisterView: View {
         
         isCheckingUsername = true
         
-        Firestore.firestore().collection("users")
+        // Make sure we're using the shared FirebaseManager instance
+        FirebaseManager.shared.firestore.collection("users")
             .whereField("username", isEqualTo: username)
             .getDocuments { snapshot, error in
                 isCheckingUsername = false
@@ -379,6 +393,9 @@ struct RegisterView: View {
                         
                         // Continue with image upload if an image was selected
                         self.persistImageToStorage()
+                        
+                        // Set isLoggedIn to true to trigger navigation to ContentView
+                        self.isLoggedIn = true
                     }
                 }
             }
@@ -414,6 +431,9 @@ struct RegisterView: View {
                     if let error = error {
                         print("Failed to update user photo URL: \(error)")
                     }
+                    
+                    // Set isLoggedIn to true to trigger navigation to ContentView
+                    self.isLoggedIn = true
                 }
             }
         }

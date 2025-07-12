@@ -1,16 +1,29 @@
 import SwiftUI
 import Firebase
+import FirebaseAuth
 
 @main
 struct ConversaApp: App {
+    @State private var userIsLoggedIn = false
+    
     init() {
-        // Configure Firebase only once when the app starts
         FirebaseApp.configure()
+        checkUserAuth()
+    }
+    
+    func checkUserAuth() {
+        Auth.auth().addStateDidChangeListener { auth, user in
+            self.userIsLoggedIn = user != nil
+        }
     }
     
     var body: some Scene {
         WindowGroup {
-            AuthView()
+            if userIsLoggedIn {
+                ContentView()
+            } else {
+                AuthView()
+            }
         }
     }
 }
