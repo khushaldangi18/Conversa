@@ -7,34 +7,55 @@
 
 import SwiftUI
 
-struct ChatUser{
+struct ChatUser {
     let uid, email, profileImageUrl: String
 }
 
 class ProfileViewModel: ObservableObject {
     @Published var chatUser: ChatUser?
-
-    init(){
+    @Published var profileImage: UIImage?
+    
+    init() {
         fetchCurrentUser()
     }
     
-    private func fetchCurrentUser(){
+    private func fetchCurrentUser() {
         guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
         
-        FirebaseManager.shared.firestore.collection("users").document(uid).getDocument{
-            snapshot, error in
+        FirebaseManager.shared.firestore.collection("users").document(uid).getDocument { snapshot, error in
             if let error = error {
-                print("Failed to fetch current user")
+                print("Failed to fetch current user: \(error)")
                 return
             }
-            guard let data = snapshot?.data() else {return}
-//            print(data)
+            guard let data = snapshot?.data() else { return }
             
             let uid = data["uid"] as? String ?? ""
             let email = data["email"] as? String ?? ""
-            let profileImageUrl = data["profileImageUrl"] as? String ?? ""
+            let profileImageUrl = data["photoURL"] as? String ?? ""
             self.chatUser = ChatUser(uid: uid, email: email, profileImageUrl: profileImageUrl)
+            
+            // Load profile image if URL exists
+            if !profileImageUrl.isEmpty {
+                self.downloadProfileImage(imageUrl: profileImageUrl)
+            }
         }
+    }
+    
+    private func downloadProfileImage(imageUrl: String) {
+        guard let url = URL(string: imageUrl) else { return }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                print("Failed to download image: \(error)")
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            DispatchQueue.main.async {
+                self.profileImage = UIImage(data: data)
+            }
+        }.resume()
     }
 }
 
@@ -52,12 +73,23 @@ struct ProfileView: View {
                     VStack(spacing: 20) {
                         // Profile image and email section
                         VStack(spacing: 15) {
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 120, height: 120)
-                                .foregroundColor(.blue)
-                                .padding(.top, 20)
+                            if let image = vm.profileImage {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.blue, lineWidth: 2))
+                                    .shadow(radius: 5)
+                                    .padding(.top, 20)
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 120, height: 120)
+                                    .foregroundColor(.blue)
+                                    .padding(.top, 20)
+                            }
 
                             Text(vm.chatUser?.email ?? "Loading...")
                                 .font(.system(size: 24, weight: .bold))
