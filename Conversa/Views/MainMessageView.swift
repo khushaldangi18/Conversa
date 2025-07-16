@@ -1,57 +1,302 @@
 import SwiftUI
+import Firebase
+import FirebaseFirestore
+import FirebaseAuth
 
 struct MainMessageView: View {
     @State private var showingNewChat = false
+    @State private var chats: [ChatItem] = []
+    @State private var isLoading = true
+    @State private var currentUser: User?
+    @State private var selectedChatId: String?
+    @State private var navigateToChat = false
     
-    var body: some View{
-        NavigationView{
-            VStack{
-                HStack{
-                    Text("Conversa").bold()
-                        .font(.system(size: 30))
-                }.padding(.horizontal)
-                ScrollView{
-                    ForEach(0..<10, id: \.self){ num in
-                        VStack{
-                            HStack(spacing: 16){
-                                Image(systemName: "person.circle.fill")
-                                    .font(.system(size: 35))
-                                    .foregroundColor(.gray)
-                                VStack(alignment: .leading){
-                                    Text("Username").bold()
-                                    Text("Message sent to user").foregroundColor(.gray)
-                                }
-                                Spacer()
-                                Text("1d")
-                                    .font(.system(size: 14, weight: .semibold))
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Text("Conversa")
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 10)
+                
+                // Chat List
+                if isLoading {
+                    Spacer()
+                    ProgressView("Loading chats...")
+                    Spacer()
+                } else if chats.isEmpty {
+                    Spacer()
+                    VStack(spacing: 16) {
+                        Image(systemName: "message.circle")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("No conversations yet")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                        Text("Tap the + button to start a new chat")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(chats, id: \.id) { chat in
+                                ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
+                                    .onTapGesture {
+                                        selectedChatId = chat.id
+                                        navigateToChat = true
+                                    }
+                                Divider()
+                                    .padding(.leading, 70)
                             }
-                            Divider()
-                        }.padding(EdgeInsets(top: 2, leading: 10, bottom: 2, trailing:10))
+                        }
                     }
                 }
             }
             .overlay(
+                // New Chat Button
                 Button {
                     showingNewChat = true
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 34))
+                        .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(.white)
-                        .frame(width: 60, height: 60)
+                        .frame(width: 56, height: 56)
                         .background(Color.green)
                         .clipShape(Circle())
-                        .shadow(radius: 5)
-                        .padding()
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 }
-                .padding()
-                , alignment: .bottomTrailing
+                .padding(.trailing, 20)
+                .padding(.bottom, 20),
+                alignment: .bottomTrailing
             )
         }
         .sheet(isPresented: $showingNewChat) {
-            NewChatView()
+            NewChatView { chatId in
+                // Callback when new chat is created
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    selectedChatId = chatId
+                    navigateToChat = true
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $navigateToChat) {
+            if let chatId = selectedChatId {
+                // Placeholder until ChatView is created
+                NavigationView {
+                    VStack {
+                        Text("Chat View")
+                            .font(.title)
+                        Text("Chat ID: \(chatId)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Spacer()
+                        
+                        Button("Close") {
+                            navigateToChat = false
+                            selectedChatId = nil
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .navigationTitle("Chat")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+        }
+        .onAppear {
+            loadCurrentUser()
+            setupRealtimeListener()
+        }
+    }
+    
+    private func loadCurrentUser() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        Firestore.firestore().collection("users").document(uid).getDocument { snapshot, error in
+            if let data = snapshot?.data() {
+                self.currentUser = User(
+                    uid: uid,
+                    email: data["email"] as? String ?? "",
+                    fullName: data["fullName"] as? String ?? "",
+                    username: data["username"] as? String ?? "",
+                    photoURL: data["photoURL"] as? String ?? ""
+                )
+            }
+        }
+    }
+    
+    private func setupRealtimeListener() {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        Firestore.firestore().collection("chats")
+            .whereField("participants", arrayContains: currentUserId)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error loading chats: \(error)")
+                    self.isLoading = false
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    self.isLoading = false
+                    return
+                }
+                
+                var newChats: [ChatItem] = []
+                
+                for document in documents {
+                    let data = document.data()
+                    let participants = data["participants"] as? [String] ?? []
+                    let otherUserId = participants.first { $0 != currentUserId } ?? ""
+                    
+                    let lastMessage = data["lastMessage"] as? [String: Any] ?? [:]
+                    let lastMessageText = lastMessage["text"] as? String ?? ""
+                    let lastMessageTimestamp = lastMessage["timestamp"] as? Timestamp ?? Timestamp()
+                    let lastMessageSenderId = lastMessage["senderId"] as? String ?? ""
+                    
+                    let lastMessageRead = data["lastMessageRead"] as? [String: Bool] ?? [:]
+                    let isUnread = !(lastMessageRead[currentUserId] ?? true)
+                    
+                    let chatItem = ChatItem(
+                        id: document.documentID,
+                        otherUserId: otherUserId,
+                        lastMessage: lastMessageText,
+                        lastMessageTime: lastMessageTimestamp.dateValue(),
+                        lastMessageSenderId: lastMessageSenderId,
+                        isUnread: isUnread
+                    )
+                    
+                    newChats.append(chatItem)
+                }
+                
+                // Sort by last message time
+                self.chats = newChats.sorted { $0.lastMessageTime > $1.lastMessageTime }
+                self.isLoading = false
+            }
+    }
+}
+
+struct ChatRowView: View {
+    let chat: ChatItem
+    let currentUserId: String
+    @State private var otherUser: User?
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Profile Image
+            if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.gray)
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.gray)
+                    .frame(width: 50, height: 50)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(otherUser?.username.isEmpty == false ? "@\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Text(formatTime(chat.lastMessageTime))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack {
+                    Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(chat.lastMessage.isEmpty ? .secondary : .primary)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .onAppear {
+            loadOtherUser()
+        }
+    }
+    
+    private func loadOtherUser() {
+        Firestore.firestore().collection("users").document(chat.otherUserId).getDocument { snapshot, error in
+            if let data = snapshot?.data() {
+                self.otherUser = User(
+                    uid: chat.otherUserId,
+                    email: data["email"] as? String ?? "",
+                    fullName: data["fullName"] as? String ?? "",
+                    username: data["username"] as? String ?? "",
+                    photoURL: data["photoURL"] as? String ?? ""
+                )
+            }
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let calendar = Calendar.current
+        let now = Date()
+        
+        if calendar.isDate(date, inSameDayAs: now) {
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: -1, to: now) ?? now) {
+            return "Yesterday"
+        } else {
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: date)
         }
     }
 }
+
+struct ChatItem {
+    let id: String
+    let otherUserId: String
+    let lastMessage: String
+    let lastMessageTime: Date
+    let lastMessageSenderId: String
+    let isUnread: Bool
+}
+
+struct User {
+    let uid: String
+    let email: String
+    let fullName: String
+    let username: String
+    let photoURL: String
+}
+
 #Preview {
     MainMessageView()
 }

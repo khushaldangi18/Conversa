@@ -9,6 +9,12 @@ struct NewChatView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     
+    let onChatCreated: (String) -> Void
+    
+    init(onChatCreated: @escaping (String) -> Void = { _ in }) {
+        self.onChatCreated = onChatCreated
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -201,8 +207,8 @@ struct NewChatView: View {
                 
                 if let existingChat = existingChat {
                     // Chat already exists, navigate to it
-                    print("Chat already exists with ID: \(existingChat.documentID)")
                     dismiss()
+                    onChatCreated(existingChat.documentID)
                     return
                 }
                 
@@ -229,12 +235,8 @@ struct NewChatView: View {
                         return
                     }
                     
-                    // Update Realtime Database for quick access
-                    let rtdbRef = Database.database().reference()
-                    rtdbRef.child("active_chats").child(currentUser.uid).child(chatRef.documentID).setValue(ServerValue.timestamp())
-                    rtdbRef.child("active_chats").child(user.uid).child(chatRef.documentID).setValue(ServerValue.timestamp())
-                    
                     dismiss()
+                    onChatCreated(chatRef.documentID)
                 }
             }
     }
