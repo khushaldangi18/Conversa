@@ -4,25 +4,24 @@ import FirebaseAuth
 
 @main
 struct ConversaApp: App {
-    @State private var userIsLoggedIn = false
+    @StateObject private var appState = AppState()
     
     init() {
         FirebaseApp.configure()
-        checkUserAuth()
-    }
-    
-    func checkUserAuth() {
-        Auth.auth().addStateDidChangeListener { auth, user in
-            self.userIsLoggedIn = user != nil
-        }
     }
     
     var body: some Scene {
         WindowGroup {
-            if userIsLoggedIn {
+            if appState.userIsLoggedIn {
                 ContentView()
+                    .environmentObject(appState)
+                    .onAppear {
+                        // Disable swipe-back to login after authentication
+                        UINavigationBar.setAnimationsEnabled(false)
+                    }
             } else {
                 AuthView()
+                    .environmentObject(appState)
             }
         }
     }

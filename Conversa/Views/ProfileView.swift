@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ChatUser {
-    let uid, email, profileImageUrl: String
+    let uid, email, username, profileImageUrl: String
 }
 
 class ProfileViewModel: ObservableObject {
@@ -31,8 +31,15 @@ class ProfileViewModel: ObservableObject {
             
             let uid = data["uid"] as? String ?? ""
             let email = data["email"] as? String ?? ""
+            let username = data["username"] as? String ?? ""
             let profileImageUrl = data["photoURL"] as? String ?? ""
-            self.chatUser = ChatUser(uid: uid, email: email, profileImageUrl: profileImageUrl)
+            
+            self.chatUser = ChatUser(
+                uid: uid, 
+                email: email, 
+                username: username, 
+                profileImageUrl: profileImageUrl
+            )
             
             // Load profile image if URL exists
             if !profileImageUrl.isEmpty {
@@ -65,13 +72,14 @@ struct ProfileView: View {
     @State private var showingSignOutAlert = false
     @Environment(\.presentationMode) var presentationMode
     @State private var navigateToLogin = false
-
+    @EnvironmentObject private var appState: AppState
+    
     var body: some View {
         NavigationView {
             VStack {
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Profile image and email section
+                        // Profile image and user info section
                         VStack(spacing: 15) {
                             if let image = vm.profileImage {
                                 Image(uiImage: image)
@@ -91,9 +99,14 @@ struct ProfileView: View {
                                     .padding(.top, 20)
                             }
 
-                            Text(vm.chatUser?.email ?? "Loading...")
-                                .font(.system(size: 24, weight: .bold))
+                            // Username displayed above email
+                            Text("@\(vm.chatUser?.username ?? "")")
+                                .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.primary)
+                            
+                            Text(vm.chatUser?.email ?? "Loading...")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
                         }
                         .padding()
                         
@@ -145,17 +158,40 @@ struct ProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $navigateToLogin) {
                 AuthView()
+                    .onDisappear {
+                        // If the user dismisses the AuthView without logging in,
+                        // we need to check if they're still logged out
+                        checkAuthState()
+                    }
+            }
+            .onAppear {
+                // Check auth state whenever the view appears
+                checkAuthState()
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .interactiveDismissDisabled(true) // Prevent swipe-to-dismiss
     }
     
     func signOut() {
         do {
             try FirebaseManager.shared.auth.signOut()
             print("Successfully signed out")
+            
+            // Update app state using our EnvironmentObject
+            appState.userIsLoggedIn = false
+            
+            // Navigate to login
             navigateToLogin = true
         } catch {
             print("Error signing out: \(error.localizedDescription)")
+        }
+    }
+    
+    func checkAuthState() {
+        // If user is not authenticated, navigate to login
+        if FirebaseManager.shared.auth.currentUser == nil {
+            navigateToLogin = true
         }
     }
 }

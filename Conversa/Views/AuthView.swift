@@ -75,6 +75,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var loginStatusMessage = ""
     @State private var isLoggedIn = false
+    @State private var isLoading = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -85,24 +86,36 @@ struct LoginView: View {
                 .cornerRadius(10)
                 .autocapitalization(.none)
                 .keyboardType(.emailAddress)
+                .disabled(isLoading)
 
             SecureField("Password", text: $password)
                 .textFieldStyle(PlainTextFieldStyle())
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
+                .disabled(isLoading)
                 
             Button(action: {
                 login()
             }) {
-                Text("Login")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                } else {
+                    Text("Login")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
             }
             .padding(.top, 10)
+            .disabled(isLoading)
             
             if !loginStatusMessage.isEmpty {
                 Text(loginStatusMessage)
@@ -118,7 +131,12 @@ struct LoginView: View {
     }
     
     func login() {
+        isLoading = true
+        loginStatusMessage = ""
+        
         Auth.auth().signIn(withEmail: email, password: password) { result, error in
+            isLoading = false
+            
             if let error = error {
                 self.loginStatusMessage = "Failed to login: \(error.localizedDescription)"
                 print(self.loginStatusMessage)
@@ -144,6 +162,7 @@ struct RegisterView: View {
     @State private var selectedImage: UIImage?
     @State private var isCheckingUsername = false
     @State private var isLoggedIn = false
+    @State private var isRegistering = false
     
     // Validation states
     @State private var isUsernameValid = true
@@ -181,105 +200,128 @@ struct RegisterView: View {
                         .foregroundColor(.green)
                         .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-            }.sheet(isPresented: $showImagePicker) {
+            }
+            .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $selectedImage)
             }
+            .disabled(isRegistering)
 
             Text("Tap to add profile photo")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
-            TextField("Full Name", text: $fullName)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .autocapitalization(.words)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    TextField("Username", text: $username)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .autocapitalization(.none)
-                        .onChange(of: username) { newValue in
-                            // Only allow alphanumeric characters and underscores
-                            let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
-                            if filtered != newValue {
-                                username = filtered
-                            }
-                            
-                            // Check username availability after typing stops
-                            if !username.isEmpty {
-                                isUsernameValid = true
-                                usernameMessage = ""
-                                checkUsernameUniqueness()
-                            }
-                        }
-                    
-                    if isCheckingUsername {
-                        ProgressView()
-                            .padding(.trailing, 8)
-                    }
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isUsernameValid ? Color.clear : Color.red, lineWidth: 1)
-                )
-                
-                if !usernameMessage.isEmpty {
-                    Text(usernameMessage)
-                        .font(.caption)
-                        .foregroundColor(isUsernameValid ? .green : .red)
-                        .padding(.leading, 4)
-                }
-            }
-            
-            TextField("Email", text: $email)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .autocapitalization(.none)
-                .keyboardType(.emailAddress)
-
-            VStack(alignment: .leading, spacing: 4) {
-                SecureField("Password", text: $password)
+            // Form fields
+            Group {
+                TextField("Full Name", text: $fullName)
                     .textFieldStyle(PlainTextFieldStyle())
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
-                    .onChange(of: password) { _ in
-                        isPasswordValid = passwordCriteria
-                        passwordMessage = isPasswordValid ? "" : "Password must be at least 8 characters with 1 uppercase letter and 1 number"
+                    .autocapitalization(.words)
+                    .disabled(isRegistering)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        TextField("Username", text: $username)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .autocapitalization(.none)
+                            .disabled(isRegistering)
+                            .onChange(of: username) { newValue in
+                                // Only allow alphanumeric characters and underscores
+                                let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
+                                if filtered != newValue {
+                                    username = filtered
+                                }
+                                
+                                // Check username availability after typing stops
+                                if !username.isEmpty {
+                                    isUsernameValid = true
+                                    usernameMessage = ""
+                                    checkUsernameUniqueness()
+                                }
+                            }
+                        
+                        if isCheckingUsername {
+                            ProgressView()
+                                .padding(.trailing, 8)
+                        }
                     }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(isPasswordValid ? Color.clear : Color.red, lineWidth: 1)
+                            .stroke(isUsernameValid ? Color.clear : Color.red, lineWidth: 1)
                     )
+                    
+                    if !usernameMessage.isEmpty {
+                        Text(usernameMessage)
+                            .font(.caption)
+                            .foregroundColor(isUsernameValid ? .green : .red)
+                            .padding(.leading, 4)
+                    }
+                }
                 
-                if !passwordMessage.isEmpty {
-                    Text(passwordMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.leading, 4)
+                TextField("Email", text: $email)
+                    .textFieldStyle(PlainTextFieldStyle())
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .autocapitalization(.none)
+                    .keyboardType(.emailAddress)
+                    .disabled(isRegistering)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    SecureField("Password", text: $password)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .disabled(isRegistering)
+                        .onChange(of: password) { _ in
+                            isPasswordValid = passwordCriteria
+                            passwordMessage = isPasswordValid ? "" : "Password must be at least 8 characters with 1 uppercase letter and 1 number"
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(isPasswordValid ? Color.clear : Color.red, lineWidth: 1)
+                        )
+                    
+                    if !passwordMessage.isEmpty {
+                        Text(passwordMessage)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.leading, 4)
+                    }
                 }
             }
                 
             Button(action: {
                 validateAndRegister()
             }) {
-                Text("Create Account")
+                if isRegistering {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        Text("Creating Account...")
+                            .foregroundColor(.white)
+                            .padding(.leading, 8)
+                    }
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)
-                    .foregroundColor(.white)
                     .cornerRadius(12)
+                } else {
+                    Text("Create Account")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
             }
             .padding(.top, 10)
-            .disabled(!isUsernameValid || !isPasswordValid || isCheckingUsername)
+            .disabled(!isUsernameValid || !isPasswordValid || isCheckingUsername || isRegistering)
             
             if !loginStatusMessage.isEmpty {
                 Text(loginStatusMessage)
@@ -347,6 +389,8 @@ struct RegisterView: View {
         }
         
         // All validations passed, proceed with registration
+        isRegistering = true
+        loginStatusMessage = ""
         register()
     }
     
@@ -357,11 +401,13 @@ struct RegisterView: View {
             .getDocuments { snapshot, error in
                 if let error = error {
                     self.loginStatusMessage = "Error checking username: \(error.localizedDescription)"
+                    self.isRegistering = false
                     return
                 }
                 
                 if let snapshot = snapshot, !snapshot.documents.isEmpty {
                     self.loginStatusMessage = "Username already taken. Please choose another."
+                    self.isRegistering = false
                     return
                 }
                 
@@ -369,11 +415,14 @@ struct RegisterView: View {
                 Auth.auth().createUser(withEmail: email, password: password) { result, err in
                     if let err = err {
                         self.loginStatusMessage = "Failed to create user: \(err.localizedDescription)"
+                        self.isRegistering = false
                         return
                     }
                     
-                    guard let uid = result?.user.uid else { return }
-                    self.loginStatusMessage = "Successfully created user \(uid)"
+                    guard let uid = result?.user.uid else { 
+                        self.isRegistering = false
+                        return 
+                    }
                     
                     // Save user data to Firestore
                     let userData: [String: Any] = [
@@ -388,42 +437,67 @@ struct RegisterView: View {
                     Firestore.firestore().collection("users").document(uid).setData(userData) { error in
                         if let error = error {
                             self.loginStatusMessage = "Failed to save user data: \(error.localizedDescription)"
+                            self.isRegistering = false
                             return
                         }
                         
                         // Continue with image upload if an image was selected
-                        self.persistImageToStorage()
-                        
-                        // Set isLoggedIn to true to trigger navigation to ContentView
-                        self.isLoggedIn = true
+                        if let selectedImage = self.selectedImage {
+                            self.persistImageToStorage()
+                        } else {
+                            // If no image was selected, set a default image URL
+                            let defaultImageData: [String: Any] = [
+                                "photoURL": "gs://chatora-f12b1.firebasestorage.app/EJUZeipoTac6ZEqxdvONkFIbtE83"
+                            ]
+                            
+                            Firestore.firestore().collection("users").document(uid).updateData(defaultImageData) { error in
+                                if let error = error {
+                                    print("Failed to set default image URL: \(error)")
+                                }
+                                
+                                self.isRegistering = false
+                                self.isLoggedIn = true
+                            }
+                        }
                     }
                 }
             }
     }
     
     private func persistImageToStorage() {
-        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { 
+            self.isRegistering = false
+            return 
+        }
+        
         let ref = FirebaseManager.shared.storage.reference(withPath: uid)
         
         guard let imageData = self.selectedImage?.jpegData(compressionQuality: 0.5) else {
+            self.isRegistering = false
+            self.isLoggedIn = true
             return
         }
         
         ref.putData(imageData, metadata: nil) { metadata, err in
             if let err = err {
                 self.loginStatusMessage = "Failed to push image to storage \(err)"
+                self.isRegistering = false
                 return
             }
             
             ref.downloadURL { url, err in
+                self.isRegistering = false
+                
                 if let err = err {
                     self.loginStatusMessage = "Failed to retrieve downloadURL: \(err)"
+                    self.isLoggedIn = true
                     return
                 }
                 
-                guard let url = url else { return }
-                self.loginStatusMessage = "Successfully stored image with url: \(url.absoluteString)"
-                print(url.absoluteString)
+                guard let url = url else { 
+                    self.isLoggedIn = true
+                    return 
+                }
                 
                 // Update the user document with the photo URL
                 let userData = ["photoURL": url.absoluteString]

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var appState: AppState
+    
     var body: some View {
         TabView {
             MainMessageView()
@@ -22,6 +24,14 @@ struct ContentView: View {
                     Text("Profile")
                 }
         }
+        .onAppear {
+            // Check authentication state
+            if FirebaseManager.shared.auth.currentUser == nil {
+                appState.userIsLoggedIn = false
+            }
+        }
+        // Prevent going back to login screen with gesture
+        .interactiveDismissDisabled(true)
     }
 }
 
