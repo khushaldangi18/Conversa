@@ -15,6 +15,8 @@ class ProfileViewModel: ObservableObject {
     @Published var chatUser: ChatUser?
     @Published var profileImage: UIImage?
     
+    private let defaultImageUrl = "https://firebasestorage.googleapis.com/v0/b/chatora-f12b1.firebasestorage.app/o/default_image.jpg?alt=media&token=a70a47b0-5834-491a-85d4-941b156519e3"
+    
     init() {
         fetchCurrentUser()
     }
@@ -41,28 +43,50 @@ class ProfileViewModel: ObservableObject {
                 profileImageUrl: profileImageUrl
             )
             
-            // Load profile image if URL exists
-            if !profileImageUrl.isEmpty {
+            // Load profile image - either custom or default
+            if !profileImageUrl.isEmpty && profileImageUrl != self.defaultImageUrl {
                 self.downloadProfileImage(imageUrl: profileImageUrl)
+            } else {
+                // Load default image
+                self.downloadProfileImage(imageUrl: self.defaultImageUrl)
             }
         }
     }
     
     private func downloadProfileImage(imageUrl: String) {
-        guard let url = URL(string: imageUrl) else { return }
+        guard let url = URL(string: imageUrl) else { 
+            // If URL is invalid, use system default
+            self.profileImage = createSystemDefaultImage()
+            return 
+        }
         
         URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
                 print("Failed to download image: \(error)")
+                // If download fails, use system default
+                DispatchQueue.main.async {
+                    self.profileImage = self.createSystemDefaultImage()
+                }
                 return
             }
             
-            guard let data = data else { return }
+            guard let data = data else { 
+                // If no data, use system default
+                DispatchQueue.main.async {
+                    self.profileImage = self.createSystemDefaultImage()
+                }
+                return 
+            }
             
             DispatchQueue.main.async {
                 self.profileImage = UIImage(data: data)
             }
         }.resume()
+    }
+    
+    private func createSystemDefaultImage() -> UIImage {
+        let config = UIImage.SymbolConfiguration(pointSize: 60, weight: .medium)
+        return UIImage(systemName: "person.circle.fill", withConfiguration: config) ?? UIImage()
     }
 }
 
@@ -84,18 +108,19 @@ struct ProfileView: View {
                             if let image = vm.profileImage {
                                 Image(uiImage: image)
                                     .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.blue, lineWidth: 2))
-                                    .shadow(radius: 5)
-                                    .padding(.top, 20)
-                            } else {
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
                                     .scaledToFit()
                                     .frame(width: 120, height: 120)
-                                    .foregroundColor(.blue)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 6)
+                                    .padding(.top, 20)
+                            } else {
+                                // Loading state - show placeholder
+                                ProgressView()
+                                    .frame(width: 120, height: 120)
+                                    .scaledToFit()
+                                    .background(Color.gray.opacity(0.2))
+                                    .clipShape(Circle())
+                                    .shadow(radius: 6)
                                     .padding(.top, 20)
                             }
 
