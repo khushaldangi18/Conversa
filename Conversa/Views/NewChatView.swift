@@ -11,46 +11,59 @@ struct NewChatView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                // Search bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
-                    
-                    TextField("Search by username", text: $searchText)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .onChange(of: searchText) { _ in
-                            if !searchText.isEmpty {
-                                searchUsers()
-                            } else {
+            VStack(spacing: 0) {
+                // Search bar - fixed at top
+                VStack {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.gray)
+                        
+                        TextField("Search by username", text: $searchText)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                            .onChange(of: searchText) { _ in
+                                if !searchText.isEmpty {
+                                    searchUsers()
+                                } else {
+                                    users = []
+                                }
+                            }
+                        
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
                                 users = []
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.gray)
                             }
                         }
-                    
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                            users = []
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.gray)
-                        }
                     }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .padding(.top)
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal)
                 
+                // Content area
                 if isLoading {
+                    Spacer()
                     ProgressView()
-                        .padding()
+                    Spacer()
                 } else if !errorMessage.isEmpty {
+                    Spacer()
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .padding()
-                } else {
+                    Spacer()
+                } else if users.isEmpty && !searchText.isEmpty {
+                    Spacer()
+                    Text("No users found")
+                        .foregroundColor(.gray)
+                        .padding()
+                    Spacer()
+                } else if !users.isEmpty {
                     // User list
                     List(users, id: \.uid) { user in
                         Button {
@@ -77,18 +90,37 @@ struct NewChatView: View {
                                 }
                                 
                                 VStack(alignment: .leading) {
-                                    Text(user.email)
+                                    Text(user.username.isEmpty ? user.email : "@\(user.username)")
                                         .font(.system(size: 16, weight: .bold))
+                                    if !user.username.isEmpty {
+                                        Text(user.email)
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.gray)
+                                    }
                                 }
                                 
                                 Spacer()
                                 
                                 Image(systemName: "message.circle.fill")
+                                        .font(.system(size: 28))
                                     .foregroundColor(.green)
+                                    .frame(width: 35, height: 35)
                             }
                         }
                         .foregroundColor(.primary)
                     }
+                    .listStyle(PlainListStyle())
+                } else {
+                    Spacer()
+                    VStack {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                        Text("Search for users by username")
+                            .foregroundColor(.gray)
+                            .padding(.top, 8)
+                    }
+                    Spacer()
                 }
             }
             .navigationTitle("New Chat")
