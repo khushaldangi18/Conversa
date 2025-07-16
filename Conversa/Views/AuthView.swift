@@ -345,9 +345,8 @@ struct RegisterView: View {
         
         isCheckingUsername = true
         
-        // Make sure we're using the shared FirebaseManager instance
         FirebaseManager.shared.firestore.collection("users")
-            .whereField("username", isEqualTo: username)
+            .whereField("username", isEqualTo: username.lowercased())
             .getDocuments { snapshot, error in
                 isCheckingUsername = false
                 
@@ -428,7 +427,7 @@ struct RegisterView: View {
                     let userData: [String: Any] = [
                         "email": self.email,
                         "fullName": self.fullName,
-                        "username": self.username,
+                        "username": self.username.lowercased(),
                         "createdAt": Timestamp(),
                         "lastActive": Timestamp(),
                         "status": "online"
