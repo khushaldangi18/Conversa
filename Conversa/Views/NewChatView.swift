@@ -96,7 +96,7 @@ struct NewChatView: View {
                                 }
                                 
                                 VStack(alignment: .leading) {
-                                    Text(user.username.isEmpty ? user.email : "@\(user.username)")
+                                    Text(user.username.isEmpty ? user.email : "\(user.username)")
                                         .font(.system(size: 16, weight: .bold))
                                     if !user.username.isEmpty {
                                         Text(user.email)
@@ -104,13 +104,8 @@ struct NewChatView: View {
                                             .foregroundColor(.gray)
                                     }
                                 }
-                                
                                 Spacer()
                                 
-                                Image(systemName: "message.circle.fill")
-                                        .font(.system(size: 28))
-                                    .foregroundColor(.green)
-                                    .frame(width: 35, height: 35)
                             }
                         }
                         .foregroundColor(.primary)

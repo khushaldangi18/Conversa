@@ -54,6 +54,7 @@ struct MainMessageView: View {
                                     }
                                 Divider()
                                     .padding(.leading, 70)
+                                    .padding(.trailing, 10)
                             }
                         }
                     }
@@ -88,29 +89,7 @@ struct MainMessageView: View {
         }
         .fullScreenCover(isPresented: $navigateToChat) {
             if let chatId = selectedChatId {
-                // Placeholder until ChatView is created
-                NavigationView {
-                    VStack {
-                        Text("Chat View")
-                            .font(.title)
-                        Text("Chat ID: \(chatId)")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                        
-                        Button("Close") {
-                            navigateToChat = false
-                            selectedChatId = nil
-                        }
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .navigationTitle("Chat")
-                    .navigationBarTitleDisplayMode(.inline)
-                }
+                ChatView(chatId: chatId)
             }
         }
         .onAppear {
@@ -215,7 +194,7 @@ struct ChatRowView: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(otherUser?.username.isEmpty == false ? "@\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
+                    Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
                     

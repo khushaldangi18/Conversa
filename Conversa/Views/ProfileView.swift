@@ -108,7 +108,7 @@ struct ProfileView: View {
                             if let image = vm.profileImage {
                                 Image(uiImage: image)
                                     .resizable()
-                                    .scaledToFit()
+                                    .scaledToFill()
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                                     .shadow(radius: 6)
@@ -117,7 +117,7 @@ struct ProfileView: View {
                                 // Loading state - show placeholder
                                 ProgressView()
                                     .frame(width: 120, height: 120)
-                                    .scaledToFit()
+                                    .scaledToFill()
                                     .background(Color.gray.opacity(0.2))
                                     .clipShape(Circle())
                                     .shadow(radius: 6)
