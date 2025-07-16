@@ -1,17 +1,14 @@
 import SwiftUI
 
 struct MainMessageView: View {
+    @State private var showingNewChat = false
+    
     var body: some View{
-        
         NavigationView{
             VStack{
                 HStack{
-//                    Image(systemName: "message.circle.fill")
-//                        .font(.system(size: 45))
-//                        .foregroundColor(.blue)
                     Text("Conversa").bold()
                         .font(.system(size: 30))
-//                    Spacer()
                 }.padding(.horizontal)
                 ScrollView{
                     ForEach(0..<10, id: \.self){ num in
@@ -35,8 +32,7 @@ struct MainMessageView: View {
             }
             .overlay(
                 Button {
-                    print("New chat")
-                    // Action to create new message
+                    showingNewChat = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 34))
@@ -50,6 +46,9 @@ struct MainMessageView: View {
                 .padding()
                 , alignment: .bottomTrailing
             )
+        }
+        .sheet(isPresented: $showingNewChat) {
+            NewChatView()
         }
     }
 }
