@@ -394,36 +394,38 @@ struct RegisterView: View {
     }
     
     func register() {
-        // First check username uniqueness one more time
-        Firestore.firestore().collection("users")
-            .whereField("username", isEqualTo: username)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    self.loginStatusMessage = "Error checking username: \(error.localizedDescription)"
-                    self.isRegistering = false
-                    return
-                }
-                
-                if let snapshot = snapshot, !snapshot.documents.isEmpty {
-                    self.loginStatusMessage = "Username already taken. Please choose another."
-                    self.isRegistering = false
-                    return
-                }
-                
-                // Username is unique, proceed with account creation
-                Auth.auth().createUser(withEmail: email, password: password) { result, err in
-                    if let err = err {
-                        self.loginStatusMessage = "Failed to create user: \(err.localizedDescription)"
+        // Create user account first
+        Auth.auth().createUser(withEmail: email, password: password) { result, err in
+            if let err = err {
+                self.loginStatusMessage = "Failed to create user: \(err.localizedDescription)"
+                self.isRegistering = false
+                return
+            }
+            
+            guard let uid = result?.user.uid else { 
+                self.isRegistering = false
+                return 
+            }
+            
+            // Check username uniqueness with authenticated user
+            FirebaseManager.shared.firestore.collection("users")
+                .whereField("username", isEqualTo: self.username)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        self.loginStatusMessage = "Error checking username: \(error.localizedDescription)"
                         self.isRegistering = false
+                        result?.user.delete()
                         return
                     }
                     
-                    guard let uid = result?.user.uid else { 
+                    if let snapshot = snapshot, !snapshot.documents.isEmpty {
+                        self.loginStatusMessage = "Username already taken. Please choose another."
                         self.isRegistering = false
-                        return 
+                        result?.user.delete()
+                        return
                     }
                     
-                    // Save user data to Firestore
+                    // Username is unique, save user data
                     let userData: [String: Any] = [
                         "email": self.email,
                         "fullName": self.fullName,
@@ -433,23 +435,23 @@ struct RegisterView: View {
                         "status": "online"
                     ]
                     
-                    Firestore.firestore().collection("users").document(uid).setData(userData) { error in
+                    FirebaseManager.shared.firestore.collection("users").document(uid).setData(userData) { error in
                         if let error = error {
                             self.loginStatusMessage = "Failed to save user data: \(error.localizedDescription)"
                             self.isRegistering = false
                             return
                         }
                         
-                        // Continue with image upload if an image was selected
+                        // Continue with image upload or set default
                         if let selectedImage = self.selectedImage {
                             self.persistImageToStorage()
                         } else {
-                            // If no image was selected, set a default image URL
+                            // Set default image URL
                             let defaultImageData: [String: Any] = [
-                                "photoURL": "gs://chatora-f12b1.firebasestorage.app/EJUZeipoTac6ZEqxdvONkFIbtE83"
+                                "photoURL": "https://firebasestorage.googleapis.com/v0/b/chatora-f12b1.firebasestorage.app/o/default_image.jpg?alt=media&token=a70a47b0-5834-491a-85d4-941b156519e3"
                             ]
                             
-                            Firestore.firestore().collection("users").document(uid).updateData(defaultImageData) { error in
+                            FirebaseManager.shared.firestore.collection("users").document(uid).updateData(defaultImageData) { error in
                                 if let error = error {
                                     print("Failed to set default image URL: \(error)")
                                 }
@@ -460,7 +462,7 @@ struct RegisterView: View {
                         }
                     }
                 }
-            }
+        }
     }
     
     private func persistImageToStorage() {
