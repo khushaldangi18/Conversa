@@ -96,36 +96,36 @@ struct ChatView: View {
             }
             
             // Message Input
-            HStack(spacing: 12) {
+            HStack(spacing: 6) {
                 Button {
                     // Attachment action
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 34))
+                        .font(.system(size: 30))
                         .foregroundColor(.green)
                 }
                 
                 HStack {
                     TextField("Type a message...", text: $messageText, axis: .vertical)
                         .lineLimit(1...5)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 8)
                     
                     if !messageText.isEmpty {
                         Button {
                             sendMessage()
                         } label: {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.blue).padding(.trailing, 6)
+                                .font(.system(size: 24))
+                                .foregroundColor(.blue)
                         }
                     }
                 }
                 .background(Color(.systemGray6))
-                .cornerRadius(40)
+                .cornerRadius(20)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 1)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(Color(.systemBackground))
         }
         .navigationBarHidden(true)
