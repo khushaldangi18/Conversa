@@ -3,7 +3,7 @@
 //  Conversa
 //
 //  Created by FCP27 on 11/07/25.
-//
+// 
 
 import SwiftUI
 
@@ -21,7 +21,7 @@ class ProfileViewModel: ObservableObject {
         fetchCurrentUser()
     }
     
-    private func fetchCurrentUser() {
+    func fetchCurrentUser() {
         guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
         
         FirebaseManager.shared.firestore.collection("users").document(uid).getDocument { snapshot, error in
@@ -43,50 +43,27 @@ class ProfileViewModel: ObservableObject {
                 profileImageUrl: profileImageUrl
             )
             
-            // Load profile image - either custom or default
-            if !profileImageUrl.isEmpty && profileImageUrl != self.defaultImageUrl {
-                self.downloadProfileImage(imageUrl: profileImageUrl)
-            } else {
-                // Load default image
-                self.downloadProfileImage(imageUrl: self.defaultImageUrl)
-            }
+            self.loadProfileImage(from: profileImageUrl)
         }
     }
     
-    private func downloadProfileImage(imageUrl: String) {
-        guard let url = URL(string: imageUrl) else { 
-            // If URL is invalid, use system default
-            self.profileImage = createSystemDefaultImage()
-            return 
-        }
+    private func loadProfileImage(from urlString: String) {
+        let imageUrl = urlString.isEmpty ? defaultImageUrl : urlString
         
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        guard let url = URL(string: imageUrl) else { return }
+        
+        URLSession.shared.dataTask(with: url) { data, _, error in
             if let error = error {
-                print("Failed to download image: \(error)")
-                // If download fails, use system default
-                DispatchQueue.main.async {
-                    self.profileImage = self.createSystemDefaultImage()
-                }
+                print("Failed to load profile image: \(error)")
                 return
             }
             
-            guard let data = data else { 
-                // If no data, use system default
-                DispatchQueue.main.async {
-                    self.profileImage = self.createSystemDefaultImage()
-                }
-                return 
-            }
+            guard let data = data, let image = UIImage(data: data) else { return }
             
             DispatchQueue.main.async {
-                self.profileImage = UIImage(data: data)
+                self.profileImage = image
             }
         }.resume()
-    }
-    
-    private func createSystemDefaultImage() -> UIImage {
-        let config = UIImage.SymbolConfiguration(pointSize: 60, weight: .medium)
-        return UIImage(systemName: "person.circle.fill", withConfiguration: config) ?? UIImage()
     }
 }
 
@@ -94,6 +71,8 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @StateObject private var vm = ProfileViewModel()
     @State private var showingSignOutAlert = false
+    @State private var showingEditProfile = false
+    @State private var showingBlockedUsers = false
     @Environment(\.presentationMode) var presentationMode
     @State private var navigateToLogin = false
     @EnvironmentObject private var appState: AppState
@@ -137,10 +116,21 @@ struct ProfileView: View {
                         
                         // Profile settings section
                         VStack(spacing: 0) {
-                            ProfileSettingRow(icon: "person.fill", title: "Edit Profile", color: .blue)
-                            ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange)
-                            ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green)
-                            ProfileSettingRow(icon: "questionmark.circle.fill", title: "Help & Support", color: .purple)
+                            ProfileSettingRow(icon: "person.fill", title: "Edit Profile", color: .blue) {
+                                showingEditProfile = true
+                            }
+                            ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange) {
+                                // Handle notifications
+                            }
+                            ProfileSettingRow(icon: "hand.raised.fill", title: "Blocked Users", color: .red) {
+                                showingBlockedUsers = true
+                            }
+                            ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green) {
+                                // Handle privacy
+                            }
+                            ProfileSettingRow(icon: "questionmark.circle.fill", title: "Help & Support", color: .purple) {
+                                // Handle help
+                            }
                         }
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
@@ -181,11 +171,17 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showingEditProfile) {
+                EditProfileView(currentUser: vm.chatUser, profileImage: vm.profileImage) {
+                    vm.fetchCurrentUser()
+                }
+            }
+            .sheet(isPresented: $showingBlockedUsers) {
+                BlockedUsersView()
+            }
             .fullScreenCover(isPresented: $navigateToLogin) {
                 AuthView()
                     .onDisappear {
-                        // If the user dismisses the AuthView without logging in,
-                        // we need to check if they're still logged out
                         checkAuthState()
                     }
             }
@@ -226,24 +222,34 @@ struct ProfileSettingRow: View {
     let icon: String
     let title: String
     let color: Color
+    let action: () -> Void
+    
+    init(icon: String, title: String, color: Color, action: @escaping () -> Void = {}) {
+        self.icon = icon
+        self.title = title
+        self.color = color
+        self.action = action
+    }
     
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 30)
-            
-            Text(title)
-                .foregroundColor(.primary)
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .foregroundColor(.gray)
-                .font(.system(size: 14))
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                    .frame(width: 30)
+                
+                Text(title)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 14))
+            }
+            .padding()
+            .background(Color(.systemBackground))
         }
-        .padding()
-        .background(Color(.systemBackground))
         
         Divider()
             .padding(.leading, 50)

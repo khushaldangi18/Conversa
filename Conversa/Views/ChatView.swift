@@ -12,7 +12,37 @@ struct ChatView: View {
     @State private var onlineStatus: String = "offline"
     @State private var lastSeen: Date?
     @State private var statusObserverHandle: DatabaseHandle?
+    @State private var showingBlockAlert = false
     @Environment(\.dismiss) private var dismiss
+    
+    private func confirmBlockUser() {
+        guard let currentUserId = Auth.auth().currentUser?.uid,
+              let otherUser  = otherUser else { return }
+        
+        let batch = Firestore.firestore().batch()
+        
+        // Add to current user's blocked list
+        let currentUserRef = Firestore.firestore().collection("users").document(currentUserId)
+        batch.updateData(["blockedUsers": FieldValue.arrayUnion([otherUser.uid])], forDocument: currentUserRef)
+        
+        // Add to other user's blockedBy list
+        let otherUserRef = Firestore.firestore().collection("users").document(otherUser.uid)
+        batch.updateData(["blockedBy": FieldValue.arrayUnion([currentUserId])], forDocument: otherUserRef)
+        
+        batch.commit { error in
+            if let error = error {
+                print("Failed to block user: \(error)")
+            } else {
+                // Navigate back to main view
+                dismiss()
+            }
+        }
+    }
+    
+   private func blockUser() {
+       showingBlockAlert = true
+   }
+
     
     var body: some View {
         VStack(spacing: 0) {
@@ -73,8 +103,10 @@ struct ChatView: View {
                 
                 Spacer()
                 
-                Button {
-                    // More options
+                Menu {
+                    Button("Block User", role: .destructive) {
+                        blockUser()
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16))
@@ -158,6 +190,14 @@ struct ChatView: View {
         .onDisappear {
             removeStatusObserver()
         }
+        .alert("Block User", isPresented: $showingBlockAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Block", role: .destructive) {
+                confirmBlockUser()
+            }
+        } message: {
+            Text("Are you sure you want to block \(otherUser?.username ?? "this user")? You won't receive messages from them.")
+        }
     }
     
     private func loadOtherUser() {
@@ -168,15 +208,10 @@ struct ChatView: View {
                 let participants = data["participants"] as? [String] ?? []
                 let otherUserId = participants.first { $0 != currentUserId } ?? ""
                 
-                Firestore.firestore().collection("users").document(otherUserId).getDocument { userSnapshot, error in
-                    if let userData = userSnapshot?.data() {
-                        self.otherUser = User(
-                            uid: otherUserId,
-                            email: userData["email"] as? String ?? "",
-                            fullName: userData["fullName"] as? String ?? "",
-                            username: userData["username"] as? String ?? "",
-                            photoURL: userData["photoURL"] as? String ?? ""
-                        )
+                // Use cached user data
+                UserCacheManager.shared.getUser(uid: otherUserId) { user in
+                    DispatchQueue.main.async {
+                        self.otherUser = user
                     }
                 }
             }
@@ -189,6 +224,7 @@ struct ChatView: View {
             .document(chatId)
             .collection("messages")
             .order(by: "timestamp", descending: false)
+            .limit(toLast: 50) // Load only last 50 messages initially
             .addSnapshotListener { snapshot, error in
                 if let error = error {
                     print("Error loading messages: \(error)")
@@ -326,3 +362,5 @@ struct Message: Identifiable {
 #Preview {
     ChatView(chatId: "sample-chat-id")
 }
+ 
+

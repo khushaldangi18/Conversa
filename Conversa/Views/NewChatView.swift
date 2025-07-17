@@ -72,40 +72,44 @@ struct NewChatView: View {
                 } else if !users.isEmpty {
                     // User list
                     List(users, id: \.uid) { user in
-                        Button {
-                            createChat(with: user)
-                        } label: {
-                            HStack {
-                                if let url = URL(string: user.profileImageUrl) {
-                                    AsyncImage(url: url) { image in
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                    } placeholder: {
-                                        Image(systemName: "person.circle.fill")
-                                            .font(.system(size: 40))
-                                            .foregroundColor(.gray)
-                                    }
-                                    .frame(width: 50, height: 50)
-                                    .clipShape(Circle())
-                                } else {
+                        HStack {
+                            // Profile Image
+                            if let url = URL(string: user.profileImageUrl) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
                                     Image(systemName: "person.circle.fill")
                                         .font(.system(size: 40))
                                         .foregroundColor(.gray)
-                                        .frame(width: 50, height: 50)
                                 }
-                                
-                                VStack(alignment: .leading) {
-                                    Text(user.username.isEmpty ? user.email : "\(user.username)")
-                                        .font(.system(size: 16, weight: .bold))
-                                    if !user.username.isEmpty {
-                                        Text(user.email)
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.gray)
-                                    }
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                            }
+                            
+                            VStack(alignment: .leading) {
+                                Text(user.username.isEmpty ? user.email : "@\(user.username)")
+                                    .font(.system(size: 16, weight: .semibold))
+                                if !user.username.isEmpty {
+                                    Text(user.email)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
                                 }
-                                Spacer()
-                                
+                            }
+                            
+                            Spacer()
+                            
+                            Menu {
+                                Button("Start Chat") {
+                                    createChat(with: user)
+                                }
+                                Button("Block User", role: .destructive) {
+                                    blockUser(user)
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .foregroundColor(.blue)
                             }
                         }
                         .foregroundColor(.primary)
@@ -149,34 +153,42 @@ struct NewChatView: View {
             return
         }
         
-        FirebaseManager.shared.firestore.collection("users")
-            .whereField("username", isGreaterThanOrEqualTo: searchText.lowercased())
-            .whereField("username", isLessThanOrEqualTo: searchText.lowercased() + "\u{f8ff}")
-            .getDocuments { snapshot, error in
-                isLoading = false
-                
-                if let error = error {
-                    errorMessage = "Failed to fetch users: \(error.localizedDescription)"
-                    return
+        // First get current user's blocked list
+        FirebaseManager.shared.firestore.collection("users").document(currentUser.uid).getDocument { snapshot, error in
+            let blockedUsers = snapshot?.data()?["blockedUsers"] as? [String] ?? []
+            let blockedBy = snapshot?.data()?["blockedBy"] as? [String] ?? []
+            
+            FirebaseManager.shared.firestore.collection("users")
+                .whereField("username", isGreaterThanOrEqualTo: searchText.lowercased())
+                .whereField("username", isLessThanOrEqualTo: searchText.lowercased() + "\u{f8ff}")
+                .getDocuments { snapshot, error in
+                    isLoading = false
+                    
+                    if let error = error {
+                        errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+                        return
+                    }
+                    
+                    users = snapshot?.documents
+                        .compactMap { document -> ChatUser? in
+                            let data = document.data()
+                            let uid = document.documentID
+                            
+                            // Skip current user, blocked users, and users who blocked current user
+                            if uid == currentUser.uid || 
+                               blockedUsers.contains(uid) || 
+                               blockedBy.contains(uid) {
+                                return nil
+                            }
+                            
+                            let email = data["email"] as? String ?? ""
+                            let profileImageUrl = data["photoURL"] as? String ?? ""
+                            let username = data["username"] as? String ?? ""
+                            
+                            return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl)
+                        } ?? []
                 }
-                
-                users = snapshot?.documents
-                    .compactMap { document -> ChatUser? in
-                        let data = document.data()
-                        let uid = document.documentID
-                        
-                        // Skip current user
-                        if uid == currentUser.uid {
-                            return nil
-                        }
-                        
-                        let email = data["email"] as? String ?? ""
-                        let profileImageUrl = data["photoURL"] as? String ?? ""
-                        let username = data["username"] as? String ?? ""
-                        
-                        return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl)
-                    } ?? []
-            }
+        }
     }
     
     private func createChat(with user: ChatUser) {
@@ -234,6 +246,29 @@ struct NewChatView: View {
                     onChatCreated(chatRef.documentID)
                 }
             }
+    }
+    
+    private func blockUser(_ user: ChatUser) {
+        guard let currentUserId = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        
+        let batch = FirebaseManager.shared.firestore.batch()
+        
+        // Add to current user's blocked list
+        let currentUserRef = FirebaseManager.shared.firestore.collection("users").document(currentUserId)
+        batch.updateData(["blockedUsers": FieldValue.arrayUnion([user.uid])], forDocument: currentUserRef)
+        
+        // Add to other user's blockedBy list
+        let otherUserRef = FirebaseManager.shared.firestore.collection("users").document(user.uid)
+        batch.updateData(["blockedBy": FieldValue.arrayUnion([currentUserId])], forDocument: otherUserRef)
+        
+        batch.commit { error in
+            if let error = error {
+                errorMessage = "Failed to block user: \(error.localizedDescription)"
+            } else {
+                // Remove from search results
+                users.removeAll { $0.uid == user.uid }
+            }
+        }
     }
 }
 

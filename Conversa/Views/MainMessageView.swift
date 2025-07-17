@@ -152,7 +152,7 @@ struct MainMessageView: View {
                         lastMessage: lastMessageText,
                         lastMessageTime: lastMessageTimestamp.dateValue(),
                         lastMessageSenderId: lastMessageSenderId,
-                        isUnread: isUnread
+                        isUnread: isUnread  // This comes from Firestore
                     )
                     
                     newChats.append(chatItem)
@@ -178,7 +178,7 @@ struct ChatRowView: View {
             // Profile Image with status indicator
             ZStack(alignment: .bottomTrailing) {
                 if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
-                    AsyncImage(url: url) { image in
+                    CachedAsyncImage(url: url) { image in
                         image
                             .resizable()
                             .scaledToFill()
@@ -257,20 +257,17 @@ struct ChatRowView: View {
     }
     
     private func loadOtherUser() {
-        Firestore.firestore().collection("users").document(chat.otherUserId).getDocument { snapshot, error in
-            if let data = snapshot?.data() {
-                self.otherUser = User(
-                    uid: chat.otherUserId,
-                    email: data["email"] as? String ?? "",
-                    fullName: data["fullName"] as? String ?? "",
-                    username: data["username"] as? String ?? "",
-                    photoURL: data["photoURL"] as? String ?? ""
-                )
+        UserCacheManager.shared.getUser(uid: chat.otherUserId) { user in
+            DispatchQueue.main.async {
+                self.otherUser = user
             }
         }
     }
     
     private func observeUserStatus() {
+        // Only observe status for visible rows
+        guard otherUser != nil else { return }
+        
         statusObserverHandle = PresenceManager.shared.observeUserStatus(for: chat.otherUserId) { status, lastSeen in
             DispatchQueue.main.async {
                 self.onlineStatus = status
