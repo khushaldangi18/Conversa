@@ -56,49 +56,31 @@ struct ChatView: View {
                         .foregroundColor(.blue)
                 }
                 
-                // Profile Image with status indicator
-                ZStack(alignment: .bottomTrailing) {
-                    if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 35))
-                                .foregroundColor(.gray)
-                        }
-                        .frame(width: 35, height: 35)
-                        .clipShape(Circle())
-                    } else {
+                // Profile Image
+                if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 35))
                             .foregroundColor(.gray)
                     }
-                    
-                    // Online status indicator
-                    Circle()
-                        .fill(onlineStatus == "online" ? Color.green : Color.gray)
-                        .frame(width: 10, height: 10)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white, lineWidth: 1.5)
-                        )
+                    .frame(width: 35, height: 35)
+                    .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 35))
+                        .foregroundColor(.gray)
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
-                    
-                    if onlineStatus == "online" {
-                        Text("Online")
-                            .font(.system(size: 12))
-                            .foregroundColor(.green)
-                    } else if let lastSeen = lastSeen {
-                        Text("Last seen \(formatLastSeen(lastSeen))")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                    }
+                    Text("Online")
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
                 }
                 
                 Spacer()
@@ -138,10 +120,17 @@ struct ChatView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     }
+                    .onAppear {
+                        if let lastMessage = messages.last {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
                     .onChange(of: messages.count) { _ in
                         if let lastMessage = messages.last {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
                     }
@@ -154,31 +143,40 @@ struct ChatView: View {
                     // Attachment action
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 34))
+                        .font(.system(size: 28))
                         .foregroundColor(.green)
                 }
                 
                 HStack {
-                    TextField("Type a message...", text: $messageText, axis: .vertical)
+                    TextField("Type a message..", text: $messageText, axis: .vertical)
                         .lineLimit(1...5)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 10)
+                        .padding(.leading, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+//                              .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                                
+                        )
                     
                     if !messageText.isEmpty {
                         Button {
                             sendMessage()
                         } label: {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(.blue).padding(.trailing, 6)
+                                .font(.system(size: 28))
+                                .foregroundColor(.blue)
+                                .padding(.trailing, 6)
                         }
                     }
                 }
                 .background(Color(.systemGray6))
-                .cornerRadius(40)
+                .cornerRadius(20)
+                
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 1)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(Color(.systemBackground))
         }
         .navigationBarHidden(true)
@@ -289,28 +287,6 @@ struct ChatView: View {
             }
         
         messageText = ""
-    }
-    
-    private func observeUserStatus() {
-        guard let otherUser = otherUser else { return }
-        
-        statusObserverHandle = PresenceManager.shared.observeUserStatus(for: otherUser.uid) { status, lastSeen in
-            DispatchQueue.main.async {
-                self.onlineStatus = status
-                self.lastSeen = lastSeen
-            }
-        }
-    }
-
-    private func removeStatusObserver() {
-        guard let otherUser = otherUser, let handle = statusObserverHandle else { return }
-        PresenceManager.shared.removeObserver(for: otherUser.uid, handle: handle)
-    }
-
-    private func formatLastSeen(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 

@@ -25,48 +25,106 @@ struct AuthView: View {
     @State private var isLogin = true
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text(isLogin ? "Login" : "Create Account")
-                .font(.system(size: 28, weight: .bold))
-            
-            HStack(spacing: 0) {
-                Button(action: {
-                    isLogin = true
-                }) {
-                    Text("Login")
-                        .foregroundColor(isLogin ? .black : .gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(isLogin ? Color.white : Color(.systemGray5))
-                        .cornerRadius(8)
-                }
-
-                Button(action: {
-                    isLogin = false
-                }) {
-                    Text("Create Account")
-                        .foregroundColor(!isLogin ? .black : .gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(!isLogin ? Color.white : Color(.systemGray5))
-                        .cornerRadius(8)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header section
+                    VStack(spacing: 15) {
+                        Spacer(minLength: 60)
+                        
+                        
+//                        ZStack {
+//                            Rectangle()
+//                                .fill(LinearGradient(
+//                                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.blue.opacity(0.05)]),
+//                                    startPoint: .topLeading,
+//                                    endPoint: .bottomTrailing
+//                                ))
+//                                .frame(width: 20, height: 20)
+//                            
+//                            Image("Logo")
+//                                .resizable()
+//                                .scaledToFit()
+//                                .font(.system(size: 20, weight: .light))
+//                                .foregroundStyle(LinearGradient(
+//                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+//                                    startPoint: .topLeading,
+//                                    endPoint: .bottomTrailing
+//                                ))
+//                        }
+                        
+                        VStack(spacing: 10) {
+                            // App icon
+                            Image("Logo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                            
+                            Text("Conversa")
+                                .font(.system(size: 36, weight: .thin, design: .rounded))
+                                .foregroundColor(.primary)
+                            
+                            Text("Connect with friends")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 15)
+                        }
+                        
+                    }
+                    .frame(minHeight: geometry.size.height * 0.32)
+                    
+                    // Auth section
+                    VStack(spacing: 32) {
+                        // Tab selector
+                        HStack(spacing: 0) {
+                            ForEach([("Sign In", true), ("Sign Up", false)], id: \.0) { title, isLoginTab in
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                        isLogin = isLoginTab
+                                    }
+                                }) {
+                                    VStack(spacing: 8) {
+                                        Text(title)
+                                            .font(.system(size: 17, weight: .medium))
+                                            .foregroundColor(isLogin == isLoginTab ? .primary : .secondary)
+                                        
+                                        Rectangle()
+                                            .fill(isLogin == isLoginTab ? Color.blue : Color.clear)
+                                            .frame(height: 2)
+                                            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isLogin)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 40)
+                        
+                        // Content
+                        Group {
+                            if isLogin {
+                                LoginView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            } else {
+                                RegisterView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .leading).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                            }
+                        }
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isLogin)
+                        
+                        Spacer(minLength: 40)
+                    }
                 }
             }
-            .background(Color(.systemGray5))
-            .clipShape(Capsule())
-            .padding(.horizontal)
-
-            // Show either LoginView or RegisterView based on selection
-            if isLogin {
-                LoginView()
-            } else {
-                RegisterView()
-            }
-
-            Spacer()
         }
-        .padding(.top, 40)
-        .background(Color(.systemGray6))
+        .background(Color.white)
+        .ignoresSafeArea()
     }
 }
 
@@ -78,53 +136,110 @@ struct LoginView: View {
     @State private var isLoading = false
     
     var body: some View {
-        VStack(spacing: 16) {
-            TextField("Email", text: $email)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .autocapitalization(.none)
-                .keyboardType(.emailAddress)
-                .disabled(isLoading)
-
-            SecureField("Password", text: $password)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .disabled(isLoading)
+        VStack(spacing: 28) {
+            VStack(spacing: 20) {
+                // Email field
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "envelope")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 20)
+                        
+                        Text("Email Address")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    TextField("Enter your email", text: $email)
+                        .font(.system(size: 16))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .autocapitalization(.none)
+                        .keyboardType(.emailAddress)
+                        .disabled(isLoading)
+                }
                 
+                // Password field
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "lock")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.red)
+                            .frame(width: 20)
+                        
+                        Text("Password")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    SecureField("Enter your password", text: $password)
+                        .font(.system(size: 16))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.red.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .disabled(isLoading)
+                }
+            }
+            .padding(.horizontal, 40)
+            
+            // Sign in button
             Button(action: {
                 login()
             }) {
-                if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                } else {
-                    Text("Login")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                HStack(spacing: 12) {
+                    if isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    
+                    Text(isLoading ? "Signing In..." : "Sign In")
+                        .font(.system(size: 17, weight: .semibold))
                 }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(Color.blue)
+                .cornerRadius(16)
+                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
             }
-            .padding(.top, 10)
+            .padding(.horizontal, 40)
             .disabled(isLoading)
+            .scaleEffect(isLoading ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isLoading)
             
             if !loginStatusMessage.isEmpty {
-                Text(loginStatusMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .padding(.top, 5)
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                    
+                    Text(loginStatusMessage)
+                        .font(.system(size: 15))
+                        .foregroundColor(.red)
+                }
+                .padding(.horizontal, 40)
             }
         }
-        .padding(.horizontal)
         .fullScreenCover(isPresented: $isLoggedIn) {
             ContentView()
         }
@@ -178,62 +293,113 @@ struct RegisterView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Profile Image Picker
-            Button {
-                showImagePicker.toggle()
-            } label: {
-                if let selectedImage = selectedImage {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                        .overlay(
+        VStack(spacing: 28) {
+            // Profile Image Section
+            VStack(spacing: 12) {
+                Button {
+                    showImagePicker.toggle()
+                } label: {
+                    ZStack {
+                        if let selectedImage = selectedImage {
+                            Image(uiImage: selectedImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 90, height: 90)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 3)
+                                )
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                        } else {
                             Circle()
-                                .stroke(Color.green, lineWidth: 3)
-                        )
-                        .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
-                } else {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .font(.system(size: 60))
-                        .foregroundColor(.green)
-                        .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
+                                .fill(Color(.systemGray6))
+                                .frame(width: 90, height: 90)
+                                .overlay(
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 34, weight: .medium))
+                                        .foregroundColor(.blue)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        }
+                        
+                        // Edit overlay
+//                        Circle()
+//                            .fill(Color.blue)
+//                            .frame(width: 28, height: 28)
+//                            .overlay(
+//                                Image(systemName: "plus")
+//                                    .font(.system(size: 12, weight: .bold))
+//                                    .foregroundColor(.white)
+//                            )
+//                            .offset(x: 30, y: 30)
+                    }
                 }
-            }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage)
-            }
-            .disabled(isRegistering)
-
-            Text("Tap to add profile photo")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            // Form fields
-            Group {
-                TextField("Full Name", text: $fullName)
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .autocapitalization(.words)
-                    .disabled(isRegistering)
+                .sheet(isPresented: $showImagePicker) {
+                    ImagePicker(image: $selectedImage)
+                }
+                .disabled(isRegistering)
                 
-                VStack(alignment: .leading, spacing: 4) {
+                Text("Add Profile Photo")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            
+            // Form Fields
+            VStack(spacing: 20) {
+                // Full Name
+                VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        TextField("Username", text: $username)
-                            .textFieldStyle(PlainTextFieldStyle())
+                        Image(systemName: "person")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.green)
+                            .frame(width: 20)
+                        
+                        Text("Full Name")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    TextField("Enter your full name", text: $fullName)
+                        .font(.system(size: 16))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.green.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .autocapitalization(.words)
+                        .disabled(isRegistering)
+                }
+                
+                // Username
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "at")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.blue)
+                            .frame(width: 20)
+                        
+                        Text("Username")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    HStack {
+                        TextField("Choose a username", text: $username)
+                            .font(.system(size: 16))
                             .autocapitalization(.none)
                             .disabled(isRegistering)
                             .onChange(of: username) { newValue in
-                                // Only allow alphanumeric characters and underscores
                                 let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
                                 if filtered != newValue {
                                     username = filtered
                                 }
                                 
-                                // Check username availability after typing stops
                                 if !username.isEmpty {
                                     isUsernameValid = true
                                     usernameMessage = ""
@@ -243,94 +409,159 @@ struct RegisterView: View {
                         
                         if isCheckingUsername {
                             ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                .scaleEffect(0.8)
                                 .padding(.trailing, 8)
                         }
                     }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(isUsernameValid ? Color.clear : Color.red, lineWidth: 1)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemGray6).opacity(0.5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(
+                                        isUsernameValid ? Color.blue.opacity(0.2) : Color.red.opacity(0.5),
+                                        lineWidth: 1
+                                    )
+                            )
                     )
                     
                     if !usernameMessage.isEmpty {
-                        Text(usernameMessage)
-                            .font(.caption)
-                            .foregroundColor(isUsernameValid ? .green : .red)
-                            .padding(.leading, 4)
+                        HStack {
+                            Image(systemName: isUsernameValid ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(isUsernameValid ? .green : .red)
+                            
+                            Text(usernameMessage)
+                                .font(.system(size: 13))
+                                .foregroundColor(isUsernameValid ? .green : .red)
+                        }
                     }
                 }
                 
-                TextField("Email", text: $email)
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .autocapitalization(.none)
-                    .keyboardType(.emailAddress)
-                    .disabled(isRegistering)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    SecureField("Password", text: $password)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(10)
+                // Email
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "envelope")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.red)
+                            .frame(width: 20)
+                        
+                        Text("Email Address")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    TextField("Enter your email", text: $email)
+                        .font(.system(size: 16))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.red.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .autocapitalization(.none)
+                        .keyboardType(.emailAddress)
+                        .disabled(isRegistering)
+                }
+                
+                // Password
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "lock")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.green)
+                            .frame(width: 20)
+                        
+                        Text("Password")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    SecureField("Create a password", text: $password)
+                        .font(.system(size: 16))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(
+                                            isPasswordValid ? Color.green.opacity(0.2) : Color.red.opacity(0.5),
+                                            lineWidth: 1
+                                        )
+                                )
+                        )
                         .disabled(isRegistering)
                         .onChange(of: password) { _ in
                             isPasswordValid = passwordCriteria
-                            passwordMessage = isPasswordValid ? "" : "Password must be at least 8 characters with 1 uppercase letter and 1 number"
+                            passwordMessage = isPasswordValid ? "" : "8+ characters, 1 uppercase, 1 number"
                         }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(isPasswordValid ? Color.clear : Color.red, lineWidth: 1)
-                        )
                     
                     if !passwordMessage.isEmpty {
-                        Text(passwordMessage)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.leading, 4)
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.red)
+                            
+                            Text(passwordMessage)
+                                .font(.system(size: 13))
+                                .foregroundColor(.red)
+                        }
                     }
                 }
             }
-                
+            .padding(.horizontal, 40)
+            
+            // Create Account Button
             Button(action: {
                 validateAndRegister()
             }) {
-                if isRegistering {
-                    HStack {
+                HStack(spacing: 12) {
+                    if isRegistering {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        Text("Creating Account...")
-                            .foregroundColor(.white)
-                            .padding(.leading, 8)
+                            .scaleEffect(0.9)
+                    } else {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 16, weight: .semibold))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                } else {
-                    Text("Create Account")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                    
+                    Text(isRegistering ? "Creating Account..." : "Create Account")
+                        .font(.system(size: 17, weight: .semibold))
                 }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(Color.blue)
+                .cornerRadius(16)
+                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
             }
-            .padding(.top, 10)
+            .padding(.horizontal, 40)
             .disabled(!isUsernameValid || !isPasswordValid || isCheckingUsername || isRegistering)
+            .scaleEffect(isRegistering ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isRegistering)
             
             if !loginStatusMessage.isEmpty {
-                Text(loginStatusMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
-                    .padding(.top, 5)
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                    
+                    Text(loginStatusMessage)
+                        .font(.system(size: 15))
+                        .foregroundColor(.red)
+                }
+                .padding(.horizontal, 40)
             }
         }
-        .padding(.horizontal)
         .fullScreenCover(isPresented: $isLoggedIn) {
             ContentView()
         }

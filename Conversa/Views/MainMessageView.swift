@@ -48,6 +48,7 @@ struct MainMessageView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(chats, id: \.id) { chat in
                                 ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
+                                    .contentShape(Rectangle())
                                     .onTapGesture {
                                         selectedChatId = chat.id
                                         navigateToChat = true
