@@ -26,9 +26,16 @@ struct ContentView: View {
         }
         .onAppear {
             // Check authentication state
-            if FirebaseManager.shared.auth.currentUser == nil {
+            if let currentUser = FirebaseManager.shared.auth.currentUser {
+                // Setup presence system
+                PresenceManager.shared.setupPresence(for: currentUser.uid)
+            } else {
                 appState.userIsLoggedIn = false
             }
+        }
+        .onDisappear {
+            // Clean up presence system
+            PresenceManager.shared.cleanupPresence()
         }
         // Prevent going back to login screen with gesture
         .interactiveDismissDisabled(true)

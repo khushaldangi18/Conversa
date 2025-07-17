@@ -85,10 +85,17 @@ struct ChatView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     }
+                    .onAppear {
+                        if let lastMessage = messages.last {
+                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        }
+                    }
                     .onChange(of: messages.count) { _ in
                         if let lastMessage = messages.last {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            DispatchQueue.main.async {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
                     }
@@ -96,33 +103,42 @@ struct ChatView: View {
             }
             
             // Message Input
-            HStack(spacing: 6) {
+            HStack(spacing: 12) {
                 Button {
                     // Attachment action
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 30))
+                        .font(.system(size: 28))
                         .foregroundColor(.green)
                 }
                 
                 HStack {
-                    TextField("Type a message...", text: $messageText, axis: .vertical)
+                    TextField("Type a message..", text: $messageText, axis: .vertical)
                         .lineLimit(1...5)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
+                        .padding(.leading, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.systemGray6).opacity(0.5))
+//                              .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                                
+                        )
                     
                     if !messageText.isEmpty {
                         Button {
                             sendMessage()
                         } label: {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 24))
+                                .font(.system(size: 28))
                                 .foregroundColor(.blue)
+                                .padding(.trailing, 6)
                         }
                     }
                 }
                 .background(Color(.systemGray6))
                 .cornerRadius(20)
+                
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

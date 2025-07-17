@@ -48,6 +48,7 @@ struct MainMessageView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(chats, id: \.id) { chat in
                                 ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
+                                    .contentShape(Rectangle())
                                     .onTapGesture {
                                         selectedChatId = chat.id
                                         navigateToChat = true
@@ -169,27 +170,41 @@ struct ChatRowView: View {
     let chat: ChatItem
     let currentUserId: String
     @State private var otherUser: User?
+    @State private var onlineStatus: String = "offline"
+    @State private var lastSeen: Date?
+    @State private var statusObserverHandle: DatabaseHandle?
     
     var body: some View {
         HStack(spacing: 12) {
-            // Profile Image
-            if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
+            // Profile Image with status indicator
+            ZStack(alignment: .bottomTrailing) {
+                if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
+                } else {
                     Image(systemName: "person.circle.fill")
                         .font(.system(size: 50))
                         .foregroundColor(.gray)
+                        .frame(width: 50, height: 50)
                 }
-                .frame(width: 50, height: 50)
-                .clipShape(Circle())
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.gray)
-                    .frame(width: 50, height: 50)
+                
+                // Online status indicator
+                Circle()
+                    .fill(onlineStatus == "online" ? Color.green : Color.gray)
+                    .frame(width: 12, height: 12)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 2)
+                    )
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -206,10 +221,15 @@ struct ChatRowView: View {
                 }
                 
                 HStack {
-                    Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
-                        .font(.system(size: 14))
-                        .foregroundColor(chat.lastMessage.isEmpty ? .secondary : .primary)
-                        .lineLimit(1)
+                    if onlineStatus == "online" {
+                        Text("Online")
+                            .font(.system(size: 12))
+                            .foregroundColor(.green)
+                    } else if let lastSeen = lastSeen {
+                        Text("Last seen \(formatLastSeen(lastSeen))")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
                     
                     Spacer()
                     
@@ -219,12 +239,21 @@ struct ChatRowView: View {
                             .frame(width: 8, height: 8)
                     }
                 }
+                
+                Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
+                    .font(.system(size: 14))
+                    .foregroundColor(chat.lastMessage.isEmpty ? .secondary : .primary)
+                    .lineLimit(1)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .onAppear {
             loadOtherUser()
+            observeUserStatus()
+        }
+        .onDisappear {
+            removeStatusObserver()
         }
     }
     
@@ -240,6 +269,27 @@ struct ChatRowView: View {
                 )
             }
         }
+    }
+    
+    private func observeUserStatus() {
+        statusObserverHandle = PresenceManager.shared.observeUserStatus(for: chat.otherUserId) { status, lastSeen in
+            DispatchQueue.main.async {
+                self.onlineStatus = status
+                self.lastSeen = lastSeen
+            }
+        }
+    }
+    
+    private func removeStatusObserver() {
+        if let handle = statusObserverHandle {
+            PresenceManager.shared.removeObserver(for: chat.otherUserId, handle: handle)
+        }
+    }
+    
+    private func formatLastSeen(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
     
     private func formatTime(_ date: Date) -> String {
