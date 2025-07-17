@@ -9,6 +9,9 @@ struct ChatView: View {
     @State private var messages: [Message] = []
     @State private var otherUser: User?
     @State private var isLoading = true
+    @State private var onlineStatus: String = "offline"
+    @State private var lastSeen: Date?
+    @State private var statusObserverHandle: DatabaseHandle?
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -23,31 +26,49 @@ struct ChatView: View {
                         .foregroundColor(.blue)
                 }
                 
-                // Profile Image
-                if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
+                // Profile Image with status indicator
+                ZStack(alignment: .bottomTrailing) {
+                    if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 35))
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 35, height: 35)
+                        .clipShape(Circle())
+                    } else {
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 35))
                             .foregroundColor(.gray)
                     }
-                    .frame(width: 35, height: 35)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 35))
-                        .foregroundColor(.gray)
+                    
+                    // Online status indicator
+                    Circle()
+                        .fill(onlineStatus == "online" ? Color.green : Color.gray)
+                        .frame(width: 10, height: 10)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white, lineWidth: 1.5)
+                        )
                 }
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
-                    Text("Online")
-                        .font(.system(size: 12))
-                        .foregroundColor(.green)
+                    
+                    if onlineStatus == "online" {
+                        Text("Online")
+                            .font(.system(size: 12))
+                            .foregroundColor(.green)
+                    } else if let lastSeen = lastSeen {
+                        Text("Last seen \(formatLastSeen(lastSeen))")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
                 }
                 
                 Spacer()
@@ -132,6 +153,10 @@ struct ChatView: View {
         .onAppear {
             loadOtherUser()
             setupMessageListener()
+            observeUserStatus()
+        }
+        .onDisappear {
+            removeStatusObserver()
         }
     }
     
@@ -228,6 +253,28 @@ struct ChatView: View {
             }
         
         messageText = ""
+    }
+    
+    private func observeUserStatus() {
+        guard let otherUser = otherUser else { return }
+        
+        statusObserverHandle = PresenceManager.shared.observeUserStatus(for: otherUser.uid) { status, lastSeen in
+            DispatchQueue.main.async {
+                self.onlineStatus = status
+                self.lastSeen = lastSeen
+            }
+        }
+    }
+
+    private func removeStatusObserver() {
+        guard let otherUser = otherUser, let handle = statusObserverHandle else { return }
+        PresenceManager.shared.removeObserver(for: otherUser.uid, handle: handle)
+    }
+
+    private func formatLastSeen(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
