@@ -2,6 +2,7 @@ import SwiftUI
 import Firebase
 import FirebaseFirestore
 import FirebaseAuth
+import FirebaseStorage
 
 struct ChatView: View {
     let chatId: String
@@ -13,6 +14,9 @@ struct ChatView: View {
     @State private var lastSeen: Date?
     @State private var statusObserverHandle: DatabaseHandle?
     @State private var showingBlockAlert = false
+    @State private var showingImagePicker = false
+    @State private var selectedImage: UIImage?
+    @State private var isUploadingImage = false
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -138,12 +142,12 @@ struct ChatView: View {
             }
             
             // Message Input
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Button {
-                    // Attachment action
+                    showingImagePicker = true
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28))
+                    Image(systemName: "photo.circle.fill")
+                        .font(.system(size: 30))
                         .foregroundColor(.green)
                 }
                 
@@ -156,24 +160,30 @@ struct ChatView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color(.systemGray6).opacity(0.5))
-//                              .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-                                
                         )
                     
-                    if !messageText.isEmpty {
+                    if !messageText.isEmpty || isUploadingImage {
                         Button {
-                            sendMessage()
+                            if !messageText.isEmpty {
+                                sendMessage()
+                            }
                         } label: {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.blue)
-                                .padding(.trailing, 6)
+                            if isUploadingImage {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .padding(.trailing, 6)
+                            } else {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.blue)
+                                    .padding(.trailing, 6)
+                            }
                         }
+                        .disabled(isUploadingImage)
                     }
                 }
                 .background(Color(.systemGray6))
                 .cornerRadius(20)
-                
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -183,10 +193,10 @@ struct ChatView: View {
         .onAppear {
             loadOtherUser()
             setupMessageListener()
-            observeUserStatus()
+//            observeUserStatus()
         }
         .onDisappear {
-            removeStatusObserver()
+//            removeStatusObserver()
         }
         .alert("Block User", isPresented: $showingBlockAlert) {
             Button("Cancel", role: .cancel) { }
@@ -195,6 +205,14 @@ struct ChatView: View {
             }
         } message: {
             Text("Are you sure you want to block \(otherUser?.username ?? "this user")? You won't receive messages from them.")
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
+        .onChange(of: selectedImage) { image in
+            if let image = image {
+                sendImageMessage(image: image)
+            }
         }
     }
     
@@ -288,6 +306,83 @@ struct ChatView: View {
         
         messageText = ""
     }
+    
+    private func sendImageMessage(image: UIImage) {
+        guard let currentUserId = Auth.auth().currentUser?.uid,
+              let imageData = image.jpegData(compressionQuality: 0.7) else { return }
+        
+        isUploadingImage = true
+        
+        // Create unique filename
+        let filename = "\(UUID().uuidString).jpg"
+        let storageRef = Storage.storage().reference()
+            .child("chat_images")
+            .child(chatId)
+            .child(filename)
+        
+        // Upload image
+        storageRef.putData(imageData, metadata: nil) { metadata, error in
+            if let error = error {
+                print("Error uploading image: \(error)")
+                isUploadingImage = false
+                return
+            }
+            
+            // Get download URL
+            storageRef.downloadURL { url, error in
+                if let error = error {
+                    print("Error getting download URL: \(error)")
+                    isUploadingImage = false
+                    return
+                }
+                
+                guard let downloadURL = url else {
+                    isUploadingImage = false
+                    return
+                }
+                
+                // Send message with image URL
+                let messageData: [String: Any] = [
+                    "text": downloadURL.absoluteString,
+                    "senderId": currentUserId,
+                    "timestamp": Timestamp(),
+                    "type": "image"
+                ]
+                
+                Firestore.firestore()
+                    .collection("chats")
+                    .document(chatId)
+                    .collection("messages")
+                    .addDocument(data: messageData) { error in
+                        if let error = error {
+                            print("Error sending image message: \(error)")
+                        } else {
+                            // Update chat's last message
+                            let lastMessageData: [String: Any] = [
+                                "lastMessage": [
+                                    "text": "📷 Photo",
+                                    "senderId": currentUserId,
+                                    "timestamp": Timestamp(),
+                                    "type": "image"
+                                ],
+                                "lastMessageRead": [
+                                    currentUserId: true,
+                                    self.otherUser?.uid ?? "": false
+                                ]
+                            ]
+                            
+                            Firestore.firestore()
+                                .collection("chats")
+                                .document(self.chatId)
+                                .updateData(lastMessageData)
+                        }
+                        
+                        isUploadingImage = false
+                        selectedImage = nil
+                    }
+            }
+        }
+    }
 }
 
 struct MessageBubbleView: View {
@@ -301,12 +396,29 @@ struct MessageBubbleView: View {
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                Text(message.text)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(isCurrentUser ? Color.blue : Color(.systemGray5))
-                    .foregroundColor(isCurrentUser ? .white : .primary)
-                    .cornerRadius(18)
+                if message.type == "image" {
+                    AsyncImage(url: URL(string: message.text)) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 200, maxHeight: 200)
+                            .cornerRadius(12)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 200, height: 150)
+                            .overlay(
+                                ProgressView()
+                            )
+                    }
+                } else {
+                    Text(message.text)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(isCurrentUser ? Color.blue : Color(.systemGray5))
+                        .foregroundColor(isCurrentUser ? .white : .primary)
+                        .cornerRadius(18)
+                }
                 
                 Text(formatTime(message.timestamp))
                     .font(.system(size: 11))

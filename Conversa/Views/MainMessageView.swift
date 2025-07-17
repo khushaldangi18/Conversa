@@ -197,14 +197,6 @@ struct ChatRowView: View {
                         .frame(width: 50, height: 50)
                 }
                 
-                // Online status indicator
-                Circle()
-                    .fill(onlineStatus == "online" ? Color.green : Color.gray)
-                    .frame(width: 12, height: 12)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white, lineWidth: 2)
-                    )
             }
             
             VStack(alignment: .leading, spacing: 4) {
@@ -233,11 +225,11 @@ struct ChatRowView: View {
                     
                     Spacer()
                     
-                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                    }
+//                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
+//                        Circle()
+//                            .fill(Color.green)
+//                            .frame(width: 8, height: 8)
+//                    }
                 }
                 
                 Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
@@ -250,10 +242,10 @@ struct ChatRowView: View {
         .padding(.vertical, 12)
         .onAppear {
             loadOtherUser()
-            observeUserStatus()
+            // observeUserStatus()  // Comment this out
         }
         .onDisappear {
-            removeStatusObserver()
+            // removeStatusObserver()  // Comment this out
         }
     }
     
