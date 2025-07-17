@@ -39,9 +39,9 @@ struct ChatView: View {
         }
     }
     
-   private func blockUser() {
-       showingBlockAlert = true
-   }
+    private func blockUser() {
+        showingBlockAlert = true
+    }
 
     
     var body: some View {
