@@ -207,7 +207,7 @@ struct ChatView: View {
             Text("Are you sure you want to block \(otherUser?.username ?? "this user")? You won't receive messages from them.")
         }
         .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(image: $selectedImage)
+            ChatImagePicker(image: $selectedImage)
         }
         .onChange(of: selectedImage) { image in
             if let image = image {
