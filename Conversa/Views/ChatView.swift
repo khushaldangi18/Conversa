@@ -17,6 +17,10 @@ struct ChatView: View {
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var isUploadingImage = false
+    @State private var showingImagePreview = false
+    @State private var previewImageURL: String = ""
+    @State private var showingDeleteAlert = false
+    @State private var messageToDelete: Message?
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -116,7 +120,15 @@ struct ChatView: View {
                             ForEach(messages) { message in
                                 MessageBubbleView(
                                     message: message,
-                                    isCurrentUser: message.senderId == Auth.auth().currentUser?.uid
+                                    isCurrentUser: message.senderId == Auth.auth().currentUser?.uid,
+                                    onImageTap: { imageURL in
+                                        previewImageURL = imageURL
+                                        showingImagePreview = true
+                                    },
+                                    onLongPress: { message in
+                                        messageToDelete = message
+                                        showingDeleteAlert = true
+                                    }
                                 )
                                 .id(message.id)
                             }
@@ -214,6 +226,34 @@ struct ChatView: View {
                 sendImageMessage(image: image)
             }
         }
+        .sheet(isPresented: $showingImagePreview) {
+            ImagePreviewView(imageURL: previewImageURL)
+        }
+        .alert("Delete Message", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { 
+                messageToDelete = nil
+            }
+            Button("Delete for Me", role: .destructive) {
+                if let message = messageToDelete {
+                    deleteMessage(message, deleteForEveryone: false)
+                }
+                messageToDelete = nil
+            }
+            if messageToDelete?.senderId == Auth.auth().currentUser?.uid {
+                Button("Delete for Everyone", role: .destructive) {
+                    if let message = messageToDelete {
+                        deleteMessage(message, deleteForEveryone: true)
+                    }
+                    messageToDelete = nil
+                }
+            }
+        } message: {
+            if messageToDelete?.senderId == Auth.auth().currentUser?.uid {
+                Text("You can delete this message for yourself or for everyone.")
+            } else {
+                Text("This message will be deleted for you only.")
+            }
+        }
     }
     
     private func loadOtherUser() {
@@ -235,12 +275,14 @@ struct ChatView: View {
     }
     
     private func setupMessageListener() {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
         Firestore.firestore()
             .collection("chats")
             .document(chatId)
             .collection("messages")
             .order(by: "timestamp", descending: false)
-            .limit(toLast: 50) // Load only last 50 messages initially
+            .limit(toLast: 50)
             .addSnapshotListener { snapshot, error in
                 if let error = error {
                     print("Error loading messages: \(error)")
@@ -249,12 +291,23 @@ struct ChatView: View {
                 
                 self.messages = snapshot?.documents.compactMap { document in
                     let data = document.data()
+                    
+                    // Check if message is deleted for current user
+                    let deletedFor = data["deletedFor"] as? [String] ?? []
+                    if deletedFor.contains(currentUserId) {
+                        return nil // Don't show this message
+                    }
+                    
+                    let isDeleted = data["deleted"] as? Bool ?? false
+                    let messageText = isDeleted ? "This message was deleted" : (data["text"] as? String ?? "")
+                    
                     return Message(
                         id: document.documentID,
-                        text: data["text"] as? String ?? "",
+                        text: messageText,
                         senderId: data["senderId"] as? String ?? "",
                         timestamp: (data["timestamp"] as? Timestamp)?.dateValue() ?? Date(),
-                        type: data["type"] as? String ?? "text"
+                        type: data["type"] as? String ?? "text",
+                        deleted: isDeleted
                     )
                 } ?? []
                 
@@ -383,11 +436,45 @@ struct ChatView: View {
             }
         }
     }
+    
+    private func deleteMessage(_ message: Message, deleteForEveryone: Bool) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        let messageRef = Firestore.firestore()
+            .collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .document(message.id)
+        
+        if deleteForEveryone && message.senderId == currentUserId {
+            // Delete for everyone - mark as deleted
+            messageRef.updateData([
+                "deleted": true,
+                "deletedAt": Timestamp(),
+                "text": "This message was deleted"
+            ]) { error in
+                if let error = error {
+                    print("Error deleting message for everyone: \(error)")
+                }
+            }
+        } else {
+            // Delete for me only - add to deletedFor array
+            messageRef.updateData([
+                "deletedFor": FieldValue.arrayUnion([currentUserId])
+            ]) { error in
+                if let error = error {
+                    print("Error deleting message for me: \(error)")
+                }
+            }
+        }
+    }
 }
 
 struct MessageBubbleView: View {
     let message: Message
     let isCurrentUser: Bool
+    let onImageTap: (String) -> Void
+    let onLongPress: (Message) -> Void
     
     var body: some View {
         HStack {
@@ -396,13 +483,16 @@ struct MessageBubbleView: View {
             }
             
             VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
-                if message.type == "image" {
+                if message.type == "image" && !message.deleted {
                     AsyncImage(url: URL(string: message.text)) { image in
                         image
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: 200, maxHeight: 200)
                             .cornerRadius(12)
+                            .onTapGesture {
+                                onImageTap(message.text)
+                            }
                     } placeholder: {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color(.systemGray5))
@@ -411,13 +501,20 @@ struct MessageBubbleView: View {
                                 ProgressView()
                             )
                     }
+                    .onLongPressGesture {
+                        onLongPress(message)
+                    }
                 } else {
                     Text(message.text)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(isCurrentUser ? Color.blue : Color(.systemGray5))
-                        .foregroundColor(isCurrentUser ? .white : .primary)
+                        .background(message.deleted ? Color(.systemGray4) : (isCurrentUser ? Color.blue : Color(.systemGray5)))
+                        .foregroundColor(message.deleted ? .secondary : (isCurrentUser ? .white : .primary))
                         .cornerRadius(18)
+                        .italic(message.deleted)
+                        .onLongPressGesture {
+                            onLongPress(message)
+                        }
                 }
                 
                 Text(formatTime(message.timestamp))
@@ -445,6 +542,16 @@ struct Message: Identifiable {
     let senderId: String
     let timestamp: Date
     let type: String
+    let deleted: Bool
+    
+    init(id: String, text: String, senderId: String, timestamp: Date, type: String, deleted: Bool = false) {
+        self.id = id
+        self.text = text
+        self.senderId = senderId
+        self.timestamp = timestamp
+        self.type = type
+        self.deleted = deleted
+    }
 }
 
 #Preview {
