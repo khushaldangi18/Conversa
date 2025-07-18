@@ -10,6 +10,8 @@ struct MainMessageView: View {
     @State private var currentUser: User?
     @State private var selectedChatId: String?
     @State private var navigateToChat = false
+    @State private var showingDeleteAlert = false
+    @State private var chatToDelete: ChatItem?
     
     var body: some View {
         NavigationView {
@@ -52,6 +54,10 @@ struct MainMessageView: View {
                                     .onTapGesture {
                                         selectedChatId = chat.id
                                         navigateToChat = true
+                                    }
+                                    .onLongPressGesture {
+                                        chatToDelete = chat
+                                        showingDeleteAlert = true
                                     }
                                 Divider()
                                     .padding(.leading, 70)
@@ -96,6 +102,21 @@ struct MainMessageView: View {
         .onAppear {
             loadCurrentUser()
             setupRealtimeListener()
+        }
+        .alert("Delete Chat", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+                chatToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let chat = chatToDelete {
+                    deleteChat(chat)
+                }
+                chatToDelete = nil
+            }
+        } message: {
+            if let chat = chatToDelete {
+                Text("Are you sure you want to delete this chat? This action cannot be undone.")
+            }
         }
     }
     
@@ -162,6 +183,54 @@ struct MainMessageView: View {
                 // Sort by last message time
                 self.chats = newChats.sorted { $0.lastMessageTime > $1.lastMessageTime }
                 self.isLoading = false
+            }
+    }
+    
+    private func deleteChat(_ chat: ChatItem) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        let batch = Firestore.firestore().batch()
+        
+        // Delete the chat document
+        let chatRef = Firestore.firestore().collection("chats").document(chat.id)
+        batch.deleteDocument(chatRef)
+        
+        // Delete all messages in the chat subcollection
+        Firestore.firestore()
+            .collection("chats")
+            .document(chat.id)
+            .collection("messages")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error getting messages to delete: \(error)")
+                    return
+                }
+                
+                let messageBatch = Firestore.firestore().batch()
+                
+                snapshot?.documents.forEach { document in
+                    messageBatch.deleteDocument(document.reference)
+                }
+                
+                // Commit message deletions first
+                messageBatch.commit { error in
+                    if let error = error {
+                        print("Error deleting messages: \(error)")
+                        return
+                    }
+                    
+                    // Then delete the chat document
+                    batch.commit { error in
+                        if let error = error {
+                            print("Error deleting chat: \(error)")
+                        } else {
+                            // Remove from local array for immediate UI update
+                            DispatchQueue.main.async {
+                                self.chats.removeAll { $0.id == chat.id }
+                            }
+                        }
+                    }
+                }
             }
     }
 }

@@ -158,18 +158,20 @@ struct NewChatView: View {
             let blockedUsers = snapshot?.data()?["blockedUsers"] as? [String] ?? []
             let blockedBy = snapshot?.data()?["blockedBy"] as? [String] ?? []
             
+            // Get all users and filter locally (simpler approach)
             FirebaseManager.shared.firestore.collection("users")
-                .whereField("username", isGreaterThanOrEqualTo: searchText.lowercased())
-                .whereField("username", isLessThanOrEqualTo: searchText.lowercased() + "\u{f8ff}")
+                .limit(to: 100) // Limit to prevent large queries
                 .getDocuments { snapshot, error in
-                    isLoading = false
+                    self.isLoading = false
                     
                     if let error = error {
-                        errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+                        self.errorMessage = "Failed to fetch users: \(error.localizedDescription)"
                         return
                     }
                     
-                    users = snapshot?.documents
+                    let searchTextLower = self.searchText.lowercased()
+                    
+                    self.users = snapshot?.documents
                         .compactMap { document -> ChatUser? in
                             let data = document.data()
                             let uid = document.documentID
@@ -185,7 +187,15 @@ struct NewChatView: View {
                             let profileImageUrl = data["photoURL"] as? String ?? ""
                             let username = data["username"] as? String ?? ""
                             
-                            return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl)
+                            // Filter by search text (username or email)
+                            let matchesUsername = username.lowercased().contains(searchTextLower)
+                            let matchesEmail = email.lowercased().contains(searchTextLower)
+                            
+                            if matchesUsername || matchesEmail {
+                                return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl)
+                            }
+                            
+                            return nil
                         } ?? []
                 }
         }
