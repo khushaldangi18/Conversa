@@ -1,4 +1,3 @@
-
 import SwiftUI
 import Firebase
 import FirebaseFirestore
@@ -6,16 +5,15 @@ import FirebaseAuth
 
 struct MainMessageView: View {
     @State private var showingNewChat = false
-    @State private var chats: [ChatItem] = []  // Array to store all user's chats
-    @State private var isLoading = true        // Loading state for initial chat fetch
-    @State private var currentUser: User?      // Current logged-in user data
-    @State private var selectedChatId: String? // ID of chat selected for opening
-    @State private var navigateToChat = false  // Navigation trigger for ChatView
+    @State private var chats: [ChatItem] = []
+    @State private var isLoading = true
+    @State private var currentUser: User?
     @State private var showingDeleteAlert = false
     @State private var chatToDelete: ChatItem?
+    @State private var navigationPath = NavigationPath()
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 0) {
                 // Header section
                 HStack {
@@ -29,12 +27,10 @@ struct MainMessageView: View {
                 
                 // Chat List Display Logic
                 if isLoading {
-                    // Show loading spinner while fetching chats
                     Spacer()
                     ProgressView("Loading chats...")
                     Spacer()
                 } else if chats.isEmpty {
-                    // Show empty state when no chats exist
                     Spacer()
                     VStack(spacing: 16) {
                         Image(systemName: "message.circle")
@@ -49,25 +45,24 @@ struct MainMessageView: View {
                     }
                     Spacer()
                 } else {
-                    // Display list of chats
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(chats, id: \.id) { chat in
-                                ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        // Chat Opening Flow:
-                                        // 1. Store the selected chat ID
-                                        selectedChatId = chat.id
+                                NavigationLink(value: chat.id) {
+                                    ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .simultaneousGesture(
+                                    TapGesture().onEnded {
                                         print("Opening chat with ID: \(chat.id), Other User ID: \(chat.otherUserId)")
-                                        // 2. Trigger navigation to ChatView
-                                        navigateToChat = true
                                     }
-                                    .onLongPressGesture {
-                                        // Long press shows delete confirmation
-                                        chatToDelete = chat
-                                        showingDeleteAlert = true
-                                    }
+                                )
+                                .onLongPressGesture {
+                                    chatToDelete = chat
+                                    showingDeleteAlert = true
+                                }
+                                
                                 Divider()
                                     .padding(.leading, 70)
                                     .padding(.trailing, 10)
@@ -76,7 +71,6 @@ struct MainMessageView: View {
                     }
                 }
             }
-            // Floating action button for new chat
             .overlay(
                 Button {
                     showingNewChat = true
@@ -93,34 +87,20 @@ struct MainMessageView: View {
                 .padding(.bottom, 20),
                 alignment: .bottomTrailing
             )
-        }
-        // Sheet for creating new chat
-        .sheet(isPresented: $showingNewChat) {
-            NewChatView { chatId in
-                // Callback when new chat is created - opens the new chat
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    selectedChatId = chatId
-                    navigateToChat = true
-                }
+            .navigationDestination(for: String.self) { chatId in
+                ChatView(chatId: chatId)
+                    .toolbar(.hidden, for: .tabBar)
             }
         }
-        // Full screen cover for chat view
-        .fullScreenCover(isPresented: $navigateToChat, onDismiss: {
-            // Reset navigation state when chat is closed
-            selectedChatId = nil
-            navigateToChat = false
-        }) {
-            // Only show ChatView if we have a valid chat ID
-            if let chatId = selectedChatId {
-                ChatView(chatId: chatId)
+        .sheet(isPresented: $showingNewChat) {
+            NewChatView { chatId in
+                navigationPath.append(chatId)
             }
         }
         .onAppear {
-            // Initialize data when view appears
-            loadCurrentUser()      // Load current user data
-            setupRealtimeListener() // Start listening for chat updates
+            loadCurrentUser()
+            setupRealtimeListener()
         }
-        // Delete confirmation alert
         .alert("Delete Chat", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 chatToDelete = nil
@@ -138,26 +118,18 @@ struct MainMessageView: View {
         }
     }
     
-    // MARK: - Data Loading Functions
-    
     private func loadCurrentUser() {
-        // Get current user's UID from Firebase Auth
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
-        // Fetch user data from Firestore
         Firestore.firestore().collection("users").document(uid).getDocument { snapshot, error in
             if let data = snapshot?.data() {
-                DispatchQueue.main.async {
-                    // Update currentUser on main thread
-                    self.currentUser = User(
-                        uid: uid,
-                        email: data["email"] as? String ?? "",
-                        fullName: data["fullName"] as? String ?? "",
-                        username: data["username"] as? String ?? "",
-                        photoURL: data["photoURL"] as? String ?? ""
-                    )
-                    print("Current user loaded: \(self.currentUser?.username ?? "Unknown")")
-                }
+                self.currentUser = User(
+                    uid: uid,
+                    email: data["email"] as? String ?? "",
+                    fullName: data["fullName"] as? String ?? "",
+                    username: data["username"] as? String ?? "",
+                    photoURL: data["photoURL"] as? String ?? ""
+                )
             }
         }
     }
@@ -165,52 +137,47 @@ struct MainMessageView: View {
     private func setupRealtimeListener() {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         
-        // STEP 1: Get current user's blocked users list
-        Firestore.firestore().collection("users").document(currentUserId).getDocument { snapshot, error in
-            let blockedUsers = snapshot?.data()?["blockedUsers"] as? [String] ?? []
-            let blockedBy = snapshot?.data()?["blockedBy"] as? [String] ?? []
-            
-            // STEP 2: Set up real-time listener for chats
-            // This listens for any changes to chats where current user is a participant
-            Firestore.firestore().collection("chats")
-                .whereField("participants", arrayContains: currentUserId)
-                .addSnapshotListener { snapshot, error in
-                    if let error = error {
-                        print("Error loading chats: \(error)")
-                        self.isLoading = false
-                        return
-                    }
-                    
-                    guard let documents = snapshot?.documents else {
-                        self.isLoading = false
-                        return
-                    }
+        // Set up real-time listener for chats
+        Firestore.firestore().collection("chats")
+            .whereField("participants", arrayContains: currentUserId)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error loading chats: \(error)")
+                    self.isLoading = false
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else {
+                    self.isLoading = false
+                    return
+                }
+                
+                // Get current user's blocked list every time chats update
+                Firestore.firestore().collection("users").document(currentUserId).getDocument { userSnapshot, userError in
+                    let blockedUsers = userSnapshot?.data()?["blockedUsers"] as? [String] ?? []
+                    let blockedBy = userSnapshot?.data()?["blockedBy"] as? [String] ?? []
                     
                     var newChats: [ChatItem] = []
                     
-                    // STEP 3: Process each chat document
                     for document in documents {
                         let data = document.data()
                         let participants = data["participants"] as? [String] ?? []
-                        // Find the other user (not current user)
                         let otherUserId = participants.first { $0 != currentUserId } ?? ""
                         
-                        // STEP 4: Filter out blocked users
+                        // Filter out blocked users
                         if blockedUsers.contains(otherUserId) || blockedBy.contains(otherUserId) {
-                            continue // Skip this chat
+                            print("Filtering out blocked user: \(otherUserId)")
+                            continue
                         }
                         
-                        // STEP 5: Extract last message data
                         let lastMessage = data["lastMessage"] as? [String: Any] ?? [:]
                         let lastMessageText = lastMessage["text"] as? String ?? ""
                         let lastMessageTimestamp = lastMessage["timestamp"] as? Timestamp ?? Timestamp()
                         let lastMessageSenderId = lastMessage["senderId"] as? String ?? ""
                         
-                        // STEP 6: Check if message is unread
                         let lastMessageRead = data["lastMessageRead"] as? [String: Bool] ?? [:]
                         let isUnread = !(lastMessageRead[currentUserId] ?? true)
                         
-                        // STEP 7: Create ChatItem object
                         let chatItem = ChatItem(
                             id: document.documentID,
                             otherUserId: otherUserId,
@@ -223,14 +190,13 @@ struct MainMessageView: View {
                         newChats.append(chatItem)
                     }
                     
-                    // STEP 8: Sort chats by most recent message and update UI
                     DispatchQueue.main.async {
                         self.chats = newChats.sorted { $0.lastMessageTime > $1.lastMessageTime }
                         self.isLoading = false
-                        print("Loaded \(self.chats.count) chats")
+                        print("Loaded \(self.chats.count) chats (blocked users filtered)")
                     }
                 }
-        }
+            }
     }
     
     private func deleteChat(_ chat: ChatItem) {
@@ -341,11 +307,11 @@ struct ChatRowView: View {
                     
                     Spacer()
                     
-//                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
-//                        Circle()
-//                            .fill(Color.green)
-//                            .frame(width: 8, height: 8)
-//                    }
+                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                    }
                 }
                 
                 Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
