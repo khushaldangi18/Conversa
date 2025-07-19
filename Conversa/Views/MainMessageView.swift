@@ -100,6 +100,10 @@ struct MainMessageView: View {
         .onAppear {
             loadCurrentUser()
             setupRealtimeListener()
+            setupNotificationObserver()
+        }
+        .onDisappear {
+            NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UserBlocked"), object: nil)
         }
         .alert("Delete Chat", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {
@@ -245,6 +249,43 @@ struct MainMessageView: View {
                     }
                 }
             }
+    }
+    
+    private func refreshChats() {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        // Get current user's blocked list
+        Firestore.firestore().collection("users").document(currentUserId).getDocument { userSnapshot, userError in
+            let blockedUsers = userSnapshot?.data()?["blockedUsers"] as? [String] ?? []
+            let blockedBy = userSnapshot?.data()?["blockedBy"] as? [String] ?? []
+            
+            // Filter existing chats
+            let filteredChats = self.chats.filter { chat in
+                let shouldKeep = !blockedUsers.contains(chat.otherUserId) && !blockedBy.contains(chat.otherUserId)
+                if !shouldKeep {
+                    print("Removing blocked user chat: \(chat.otherUserId)")
+                }
+                return shouldKeep
+            }
+            
+            DispatchQueue.main.async {
+                self.chats = filteredChats
+                print("Refreshed chats: \(self.chats.count) remaining")
+            }
+        }
+    }
+}
+
+extension MainMessageView {
+    private func setupNotificationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("UserBlocked"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("Received user blocked notification - refreshing chats")
+            refreshChats()
+        }
     }
 }
 

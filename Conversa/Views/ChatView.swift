@@ -25,7 +25,7 @@ struct ChatView: View {
     
     private func confirmBlockUser() {
         guard let currentUserId = Auth.auth().currentUser?.uid,
-              let otherUser  = otherUser else { return }
+              let otherUser = otherUser else { return }
         
         let batch = Firestore.firestore().batch()
         
@@ -41,6 +41,9 @@ struct ChatView: View {
             if let error = error {
                 print("Failed to block user: \(error)")
             } else {
+                // Post notification to refresh chat list
+                NotificationCenter.default.post(name: NSNotification.Name("UserBlocked"), object: nil)
+                
                 // Navigate back to main view
                 dismiss()
             }
