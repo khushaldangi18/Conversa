@@ -118,7 +118,7 @@ struct BlockedUsersView: View {
             
             // Fetch blocked user details
             FirebaseManager.shared.firestore.collection("users")
-                .whereField("uid", in: blockedUserIds)
+                .whereField(FieldPath.documentID(), in: blockedUserIds)
                 .getDocuments { snapshot, error in
                     isLoading = false
                     
@@ -137,6 +137,7 @@ struct BlockedUsersView: View {
                         )
                     } ?? []
                 }
+            print(blockedUsers)
         }
     }
     
@@ -162,4 +163,8 @@ struct BlockedUsersView: View {
             }
         }
     }
+}
+
+#Preview{
+    BlockedUsersView()
 }
