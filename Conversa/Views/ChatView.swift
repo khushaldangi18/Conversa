@@ -322,8 +322,10 @@ struct ChatView: View {
         guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let currentUserId = Auth.auth().currentUser?.uid else { return }
         
+        let trimmedMessage = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        
         let messageData: [String: Any] = [
-            "text": messageText,
+            "text": trimmedMessage,
             "senderId": currentUserId,
             "timestamp": Timestamp(),
             "type": "text"
@@ -343,7 +345,7 @@ struct ChatView: View {
                 // Update chat's last message
                 let lastMessageData: [String: Any] = [
                     "lastMessage": [
-                        "text": self.messageText,
+                        "text": trimmedMessage,
                         "senderId": currentUserId,
                         "timestamp": Timestamp(),
                         "type": "text"
@@ -357,7 +359,11 @@ struct ChatView: View {
                 Firestore.firestore()
                     .collection("chats")
                     .document(self.chatId)
-                    .updateData(lastMessageData)
+                    .updateData(lastMessageData) { error in
+                        if let error = error {
+                            print("Error updating last message: \(error)")
+                        }
+                    }
             }
         
         messageText = ""
@@ -458,6 +464,8 @@ struct ChatView: View {
             ]) { error in
                 if let error = error {
                     print("Error deleting message for everyone: \(error)")
+                } else {
+                    self.updateLastMessageAfterDeletion(deletedMessageId: message.id)
                 }
             }
         } else {
@@ -467,9 +475,76 @@ struct ChatView: View {
             ]) { error in
                 if let error = error {
                     print("Error deleting message for me: \(error)")
+                } else {
+                    self.updateLastMessageAfterDeletion(deletedMessageId: message.id)
                 }
             }
         }
+    }
+
+    private func updateLastMessageAfterDeletion(deletedMessageId: String) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        // Get the most recent message that's not deleted for current user
+        Firestore.firestore()
+            .collection("chats")
+            .document(chatId)
+            .collection("messages")
+            .order(by: "timestamp", descending: true)
+            .limit(to: 10)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error getting messages for last message update: \(error)")
+                    return
+                }
+                
+                // Find the most recent visible message
+                let visibleMessage = snapshot?.documents.first { document in
+                    let data = document.data()
+                    let deletedFor = data["deletedFor"] as? [String] ?? []
+                    let isDeleted = data["deleted"] as? Bool ?? false
+                    
+                    // Skip if deleted for current user or deleted for everyone
+                    return !deletedFor.contains(currentUserId) && !isDeleted
+                }
+                
+                let lastMessageData: [String: Any]
+                
+                if let visibleMessage = visibleMessage {
+                    let data = visibleMessage.data()
+                    let messageType = data["type"] as? String ?? "text"
+                    let messageText = messageType == "image" ? "📷 Photo" : (data["text"] as? String ?? "")
+                    
+                    lastMessageData = [
+                        "lastMessage": [
+                            "text": messageText,
+                            "senderId": data["senderId"] as? String ?? "",
+                            "timestamp": data["timestamp"] as? Timestamp ?? Timestamp(),
+                            "type": messageType
+                        ]
+                    ]
+                } else {
+                    // No visible messages left
+                    lastMessageData = [
+                        "lastMessage": [
+                            "text": "",
+                            "senderId": "",
+                            "timestamp": Timestamp(),
+                            "type": "text"
+                        ]
+                    ]
+                }
+                
+                // Update the chat document
+                Firestore.firestore()
+                    .collection("chats")
+                    .document(self.chatId)
+                    .updateData(lastMessageData) { error in
+                        if let error = error {
+                            print("Error updating last message after deletion: \(error)")
+                        }
+                    }
+            }
     }
 }
 

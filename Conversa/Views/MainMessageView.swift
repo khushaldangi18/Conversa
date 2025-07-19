@@ -322,7 +322,7 @@ struct ChatRowView: View {
                 
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
@@ -348,16 +348,16 @@ struct ChatRowView: View {
                     
                     Spacer()
                     
-                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                    }
+//                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
+//                        Circle()
+//                            .fill(Color.green)
+//                            .frame(width: 8, height: 8)
+//                    }
                 }
                 
                 Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
                     .font(.system(size: 14))
-                    .foregroundColor(chat.lastMessage.isEmpty ? .secondary : .primary)
+                    .foregroundColor(.gray)
                     .lineLimit(1)
             }
         }
