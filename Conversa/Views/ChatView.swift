@@ -21,6 +21,7 @@ struct ChatView: View {
     @State private var previewImageURL: String = ""
     @State private var showingDeleteAlert = false
     @State private var messageToDelete: Message?
+    @State private var chatOpenedAt: Date = Date()
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -557,8 +558,11 @@ struct ChatView: View {
     private func markMessagesAsRead() {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         
+        // Only mark messages as read that were sent BEFORE the chat was opened
         let unreadMessages = messages.filter { message in
-            message.senderId != currentUserId && !message.readBy.contains(currentUserId)
+            message.senderId != currentUserId && 
+            !message.readBy.contains(currentUserId) &&
+            message.timestamp <= chatOpenedAt // Only messages that existed when chat opened
         }
         
         let batch = Firestore.firestore().batch()
