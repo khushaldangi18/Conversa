@@ -646,11 +646,11 @@ struct MessageBubbleView: View {
                     if isCurrentUser {
                         if let otherUserId = otherUserId, message.readBy.contains(otherUserId) {
                             Image(systemName: "checkmark.circle.fill") // ● Blue filled
-                                .font(.system(size: 10))
+                                .font(.system(size: 14))
                                 .foregroundColor(.blue)
                         } else {
                             Image(systemName: "checkmark.circle")      // ○ Gray empty
-                                .font(.system(size: 10))
+                                .font(.system(size: 15))
                                 .foregroundColor(.gray)
                         }
                     }
