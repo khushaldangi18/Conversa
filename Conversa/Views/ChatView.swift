@@ -131,7 +131,8 @@ struct ChatView: View {
                                     onLongPress: { message in
                                         messageToDelete = message
                                         showingDeleteAlert = true
-                                    }
+                                    },
+                                    otherUserId: otherUser?.uid
                                 )
                                 .id(message.id)
                             }
@@ -298,11 +299,12 @@ struct ChatView: View {
                     // Check if message is deleted for current user
                     let deletedFor = data["deletedFor"] as? [String] ?? []
                     if deletedFor.contains(currentUserId) {
-                        return nil // Don't show this message
+                        return nil
                     }
                     
                     let isDeleted = data["deleted"] as? Bool ?? false
                     let messageText = isDeleted ? "This message was deleted" : (data["text"] as? String ?? "")
+                    let readBy = data["readBy"] as? [String] ?? []
                     
                     return Message(
                         id: document.documentID,
@@ -310,11 +312,15 @@ struct ChatView: View {
                         senderId: data["senderId"] as? String ?? "",
                         timestamp: (data["timestamp"] as? Timestamp)?.dateValue() ?? Date(),
                         type: data["type"] as? String ?? "text",
-                        deleted: isDeleted
+                        deleted: isDeleted,
+                        readBy: readBy
                     )
                 } ?? []
                 
                 self.isLoading = false
+                
+                // Mark messages as read when they appear
+                self.markMessagesAsRead()
             }
     }
     
@@ -328,7 +334,8 @@ struct ChatView: View {
             "text": trimmedMessage,
             "senderId": currentUserId,
             "timestamp": Timestamp(),
-            "type": "text"
+            "type": "text",
+            "readBy": [currentUserId] // Sender has read their own message
         ]
         
         // Add message to subcollection
@@ -546,6 +553,36 @@ struct ChatView: View {
                     }
             }
     }
+    
+    private func markMessagesAsRead() {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        
+        let unreadMessages = messages.filter { message in
+            message.senderId != currentUserId && !message.readBy.contains(currentUserId)
+        }
+        
+        let batch = Firestore.firestore().batch()
+        
+        for message in unreadMessages {
+            let messageRef = Firestore.firestore()
+                .collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .document(message.id)
+            
+            batch.updateData([
+                "readBy": FieldValue.arrayUnion([currentUserId])
+            ], forDocument: messageRef)
+        }
+        
+        if !unreadMessages.isEmpty {
+            batch.commit { error in
+                if let error = error {
+                    print("Error marking messages as read: \(error)")
+                }
+            }
+        }
+    }
 }
 
 struct MessageBubbleView: View {
@@ -553,6 +590,7 @@ struct MessageBubbleView: View {
     let isCurrentUser: Bool
     let onImageTap: (String) -> Void
     let onLongPress: (Message) -> Void
+    let otherUserId: String? // Add this parameter
     
     var body: some View {
         HStack {
@@ -595,10 +633,25 @@ struct MessageBubbleView: View {
                         }
                 }
                 
-                Text(formatTime(message.timestamp))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
+                HStack(spacing: 4) {
+                    Text(formatTime(message.timestamp))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    // Read receipt indicator for sent messages
+                    if isCurrentUser {
+                        if let otherUserId = otherUserId, message.readBy.contains(otherUserId) {
+                            Image(systemName: "checkmark.circle.fill") // ● Blue filled
+                                .font(.system(size: 10))
+                                .foregroundColor(.blue)
+                        } else {
+                            Image(systemName: "checkmark.circle")      // ○ Gray empty
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .padding(.horizontal, 4)
             }
             
             if !isCurrentUser {
@@ -621,14 +674,16 @@ struct Message: Identifiable {
     let timestamp: Date
     let type: String
     let deleted: Bool
+    let readBy: [String] // Add this field
     
-    init(id: String, text: String, senderId: String, timestamp: Date, type: String, deleted: Bool = false) {
+    init(id: String, text: String, senderId: String, timestamp: Date, type: String, deleted: Bool = false, readBy: [String] = []) {
         self.id = id
         self.text = text
         self.senderId = senderId
         self.timestamp = timestamp
         self.type = type
         self.deleted = deleted
+        self.readBy = readBy
     }
 }
 
