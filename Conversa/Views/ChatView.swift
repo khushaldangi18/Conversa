@@ -90,9 +90,20 @@ struct ChatView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
-                    Text("Online")
-                        .font(.system(size: 12))
-                        .foregroundColor(.green)
+                    
+                    if onlineStatus == "online" {
+                        Text("Online")
+                            .font(.system(size: 12))
+                            .foregroundColor(.green)
+//                    } else if let lastSeen = lastSeen {
+//                        Text("Last seen \(formatLastSeen(lastSeen))")
+//                            .font(.system(size: 12))
+//                            .foregroundColor(.gray)
+                    } else {
+                        Text("Offline")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
                 }
                 
                 Spacer()
@@ -210,10 +221,12 @@ struct ChatView: View {
         .onAppear {
             loadOtherUser()
             setupMessageListener()
-//            observeUserStatus()
+            if let currentUserId = Auth.auth().currentUser?.uid {
+                PresenceManager.shared.setupPresence(for: currentUserId)
+            }
         }
         .onDisappear {
-//            removeStatusObserver()
+           removeStatusObserver()
         }
         .alert("Block User", isPresented: $showingBlockAlert) {
             Button("Cancel", role: .cancel) { }
@@ -273,6 +286,8 @@ struct ChatView: View {
                 UserCacheManager.shared.getUser(uid: otherUserId) { user in
                     DispatchQueue.main.async {
                         self.otherUser = user
+                        // Start observing status after user is loaded
+                        self.observeUserStatus()
                     }
                 }
             }
@@ -585,6 +600,25 @@ struct ChatView: View {
                     print("Error marking messages as read: \(error)")
                 }
             }
+        }
+    }
+    private func observeUserStatus() {
+        guard let otherUser = otherUser else { return }
+        
+        statusObserverHandle = PresenceManager.shared.observeUserStatus(for: otherUser.uid) { status, lastSeen in
+            DispatchQueue.main.async {
+                self.onlineStatus = status
+                self.lastSeen = lastSeen
+            }
+        }
+    }
+
+    private func removeStatusObserver() {
+        guard let otherUser = otherUser else { return }
+        
+        if let handle = statusObserverHandle {
+            PresenceManager.shared.removeObserver(for: otherUser.uid, handle: handle)
+            statusObserverHandle = nil
         }
     }
 }

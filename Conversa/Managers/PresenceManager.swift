@@ -10,8 +10,10 @@ class PresenceManager {
     private var connectedRef: DatabaseReference
     
     private init() {
-        ref = Database.database().reference()
-        connectedRef = Database.database().reference(withPath: ".info/connected")
+        // ref = Database.database().reference()
+        // connectedRef = Database.database().reference(withPath: ".info/connected")
+        ref = Database.database(url: "https://chatora-f12b1-default-rtdb.asia-southeast1.firebasedatabase.app").reference()
+        connectedRef = Database.database(url: "https://chatora-f12b1-default-rtdb.asia-southeast1.firebasedatabase.app").reference(withPath: ".info/connected")
     }
     
     func setupPresence(for userId: String) {

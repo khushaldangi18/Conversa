@@ -263,6 +263,11 @@ struct LoginView: View {
             
             // Set isLoggedIn to true to trigger navigation to ContentView
             self.isLoggedIn = true
+
+            // Set up presence for logged in user
+            if let uid = result?.user.uid {
+                PresenceManager.shared.setupPresence(for: uid)
+            }
         }
     }
 }
@@ -689,6 +694,11 @@ struct RegisterView: View {
                                 
                                 self.isRegistering = false
                                 self.isLoggedIn = true
+
+                                // Set up presence for new user
+                                if let uid = FirebaseManager.shared.auth.currentUser?.uid {
+                                    PresenceManager.shared.setupPresence(for: uid)
+                                }
                             }
                         }
                     }
