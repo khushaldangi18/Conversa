@@ -228,8 +228,10 @@ struct ChatView: View {
             }
         }
         .onDisappear {
-            removeStatusObserver()
+            // Stop the timer first
             stopSeenStatusTimer()
+            // Remove status observer
+            removeStatusObserver()
             // Clean up presence system
             PresenceManager.shared.cleanupPresence()
         }
@@ -578,13 +580,18 @@ struct ChatView: View {
     private func markMessagesAsRead() {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         
+        print("Timer fired - marking messages as read") // Add debug log
+        
         // Mark all unread messages from other user as read
         let unreadMessages = messages.filter { message in
             message.senderId != currentUserId && 
             !message.readBy.contains(currentUserId)
         }
         
-        guard !unreadMessages.isEmpty else { return }
+        guard !unreadMessages.isEmpty else { 
+            print("No unread messages to mark")
+            return 
+        }
         
         let batch = Firestore.firestore().batch()
         
@@ -603,6 +610,8 @@ struct ChatView: View {
         batch.commit { error in
             if let error = error {
                 print("Error marking messages as read: \(error)")
+            } else {
+                print("Successfully marked \(unreadMessages.count) messages as read")
             }
         }
     }
@@ -634,6 +643,7 @@ struct ChatView: View {
     private func stopSeenStatusTimer() {
         seenStatusTimer?.invalidate()
         seenStatusTimer = nil
+        print("Seen status timer stopped") // Add debug log
     }
 }
 
