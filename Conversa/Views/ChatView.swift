@@ -23,6 +23,7 @@ struct ChatView: View {
     @State private var messageToDelete: Message?
     @State private var chatOpenedAt: Date = Date()
     @State private var seenStatusTimer: Timer?
+    @State private var isViewActive = false
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -220,6 +221,7 @@ struct ChatView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
+            isViewActive = true
             loadOtherUser()
             setupMessageListener()
             startSeenStatusTimer()
@@ -228,9 +230,8 @@ struct ChatView: View {
             }
         }
         .onDisappear {
-            // Stop the timer first
+            isViewActive = false
             stopSeenStatusTimer()
-            // Remove status observer
             removeStatusObserver()
             // Clean up presence system
             PresenceManager.shared.cleanupPresence()
@@ -578,9 +579,13 @@ struct ChatView: View {
     }
     
     private func markMessagesAsRead() {
-        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        guard isViewActive,
+              let currentUserId = Auth.auth().currentUser?.uid else { 
+            print("View not active or no user - skipping mark as read")
+            return 
+        }
         
-        print("Timer fired - marking messages as read") // Add debug log
+        print("Timer fired - marking messages as read")
         
         // Mark all unread messages from other user as read
         let unreadMessages = messages.filter { message in
@@ -635,15 +640,18 @@ struct ChatView: View {
         }
     }
     private func startSeenStatusTimer() {
+        stopSeenStatusTimer() // Stop any existing timer first
         seenStatusTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            markMessagesAsRead()
+            if self.isViewActive {
+                self.markMessagesAsRead()
+            }
         }
     }
     
     private func stopSeenStatusTimer() {
         seenStatusTimer?.invalidate()
         seenStatusTimer = nil
-        print("Seen status timer stopped") // Add debug log
+        print("Seen status timer stopped")
     }
 }
 
