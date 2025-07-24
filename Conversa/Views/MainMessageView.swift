@@ -363,13 +363,13 @@ struct ChatRowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .onAppear {
-            loadOtherUser()
-            // observeUserStatus()  // Comment this out
-        }
-        .onDisappear {
-            // removeStatusObserver()  // Comment this out
-        }
+//        .onAppear {
+//            loadOtherUser()
+//            // observeUserStatus()  // Comment this out
+//        }
+//        .onDisappear {
+//            // removeStatusObserver()  // Comment this out
+//        }
     }
     
     private func loadOtherUser() {
