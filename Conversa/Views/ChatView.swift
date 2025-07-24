@@ -230,6 +230,8 @@ struct ChatView: View {
         .onDisappear {
             removeStatusObserver()
             stopSeenStatusTimer()
+            // Clean up presence system
+            PresenceManager.shared.cleanupPresence()
         }
         .alert("Block User", isPresented: $showingBlockAlert) {
             Button("Cancel", role: .cancel) { }
@@ -579,8 +581,7 @@ struct ChatView: View {
         // Mark all unread messages from other user as read
         let unreadMessages = messages.filter { message in
             message.senderId != currentUserId && 
-            !message.readBy.contains(currentUserId) &&
-            message.timestamp <= chatOpenedAt // Only messages that existed when chat opened
+            !message.readBy.contains(currentUserId)
         }
         
         guard !unreadMessages.isEmpty else { return }
