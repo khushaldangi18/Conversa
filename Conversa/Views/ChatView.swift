@@ -22,6 +22,7 @@ struct ChatView: View {
     @State private var showingDeleteAlert = false
     @State private var messageToDelete: Message?
     @State private var chatOpenedAt: Date = Date()
+    @State private var seenStatusTimer: Timer?
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -221,12 +222,14 @@ struct ChatView: View {
         .onAppear {
             loadOtherUser()
             setupMessageListener()
+            startSeenStatusTimer()
             if let currentUserId = Auth.auth().currentUser?.uid {
                 PresenceManager.shared.setupPresence(for: currentUserId)
             }
         }
         .onDisappear {
-           removeStatusObserver()
+            removeStatusObserver()
+            stopSeenStatusTimer()
         }
         .alert("Block User", isPresented: $showingBlockAlert) {
             Button("Cancel", role: .cancel) { }
@@ -573,12 +576,14 @@ struct ChatView: View {
     private func markMessagesAsRead() {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         
-        // Only mark messages as read that were sent BEFORE the chat was opened
+        // Mark all unread messages from other user as read
         let unreadMessages = messages.filter { message in
             message.senderId != currentUserId && 
             !message.readBy.contains(currentUserId) &&
             message.timestamp <= chatOpenedAt // Only messages that existed when chat opened
         }
+        
+        guard !unreadMessages.isEmpty else { return }
         
         let batch = Firestore.firestore().batch()
         
@@ -594,11 +599,9 @@ struct ChatView: View {
             ], forDocument: messageRef)
         }
         
-        if !unreadMessages.isEmpty {
-            batch.commit { error in
-                if let error = error {
-                    print("Error marking messages as read: \(error)")
-                }
+        batch.commit { error in
+            if let error = error {
+                print("Error marking messages as read: \(error)")
             }
         }
     }
@@ -620,6 +623,16 @@ struct ChatView: View {
             PresenceManager.shared.removeObserver(for: otherUser.uid, handle: handle)
             statusObserverHandle = nil
         }
+    }
+    private func startSeenStatusTimer() {
+        seenStatusTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            markMessagesAsRead()
+        }
+    }
+    
+    private func stopSeenStatusTimer() {
+        seenStatusTimer?.invalidate()
+        seenStatusTimer = nil
     }
 }
 
