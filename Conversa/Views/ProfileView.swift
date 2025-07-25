@@ -116,9 +116,30 @@ struct ProfileView: View {
                         
                         // Profile settings section
                         VStack(spacing: 0) {
-                            ProfileSettingRow(icon: "person.fill", title: "Edit Profile", color: .blue) {
-                                showingEditProfile = true
+                            NavigationLink(destination: EditProfileView(currentUser: vm.chatUser, profileImage: vm.profileImage) {
+                                vm.fetchCurrentUser()
+                            }) {
+                                HStack {
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.blue)
+                                        .frame(width: 30)
+                                    
+                                    Text("Edit Profile")
+                                        .foregroundColor(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 14))
+                                }
+                                .padding()
+                                .background(Color(.systemBackground))
                             }
+                            
+                            Divider()
+                                .padding(.leading, 50)
+                            
                             ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange) {
                                 // Handle notifications
                             }
@@ -190,11 +211,6 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingEditProfile) {
-                EditProfileView(currentUser: vm.chatUser, profileImage: vm.profileImage) {
-                    vm.fetchCurrentUser()
-                }
-            }
             .sheet(isPresented: $showingBlockedUsers) {
                 BlockedUsersView()
             }

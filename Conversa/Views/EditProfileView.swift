@@ -20,138 +20,274 @@ struct EditProfileView: View {
     let onUpdate: () -> Void
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header Section
+                VStack(spacing: 16) {
+                    Text("Edit Your Profile")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    Text("Update your profile information and photo")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 20)
+                
                 // Profile Image Section
-                VStack(spacing: 10) {
+                VStack(spacing: 16) {
                     Button {
                         showImagePicker = true
                     } label: {
-                        if let selectedImage = selectedImage {
-                            Image(uiImage: selectedImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
+                        ZStack {
+                            if let selectedImage = selectedImage {
+                                Image(uiImage: selectedImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 140, height: 140)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [.blue, .purple]),
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 4
+                                            )
+                                    )
+                                    .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                            } else if let profileImage = profileImage {
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 140, height: 140)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [.blue, .purple]),
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 4
+                                            )
+                                    )
+                                    .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                            } else {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [.blue.opacity(0.1), .purple.opacity(0.1)]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 140, height: 140)
+                                    .overlay(
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.gray.opacity(0.6))
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                    )
+                            }
+                            
+                            // Camera overlay
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 40, height: 40)
                                 .overlay(
-                                    Circle()
-                                        .stroke(Color.blue, lineWidth: 3)
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.white)
                                 )
-                        } else if let profileImage = profileImage {
-                            Image(uiImage: profileImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.blue, lineWidth: 3)
-                                )
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 120))
-                                .foregroundColor(.gray)
+                                .shadow(color: .blue.opacity(0.4), radius: 4, x: 0, y: 2)
+                                .offset(x: 45, y: 45)
                         }
                     }
                     .disabled(isUpdating)
+                    .scaleEffect(isUpdating ? 0.95 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isUpdating)
                     
-                    Text("Tap to change profile photo")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                    VStack(spacing: 4) {
+                        Text("Tap to change profile photo")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.blue)
+                        
+                        Text("Choose a photo that represents you")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 // Username Section
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Username")
-                        .font(.headline)
-                    
-                    HStack {
-                        TextField("Enter username", text: $username)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .autocapitalization(.none)
-                            .disabled(isUpdating)
-                            .onChange(of: username) { newValue in
-                                let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
-                                if filtered != newValue {
-                                    username = filtered
-                                }
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "at")
+                                .font(.system(size: 18))
+                                .foregroundColor(.blue)
+                            Text("Username")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                        }
+                        
+                        VStack(spacing: 8) {
+                            HStack(spacing: 12) {
+                                TextField("Enter username", text: $username)
+                                    .font(.system(size: 16))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 14)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(Color(.systemGray6))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(
+                                                isUsernameValid ? Color.clear : Color.red.opacity(0.5),
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .autocapitalization(.none)
+                                    .disabled(isUpdating)
+                                    .onChange(of: username) { newValue in
+                                        let filtered = newValue.filter { $0.isLetter || $0.isNumber || $0 == "_" }
+                                        if filtered != newValue {
+                                            username = filtered
+                                        }
+                                        
+                                        if !username.isEmpty && username != currentUser?.username {
+                                            checkUsernameUniqueness()
+                                        } else {
+                                            isUsernameValid = true
+                                            usernameMessage = ""
+                                        }
+                                    }
                                 
-                                if !username.isEmpty && username != currentUser?.username {
-                                    checkUsernameUniqueness()
-                                } else {
-                                    isUsernameValid = true
-                                    usernameMessage = ""
+                                if isCheckingUsername {
+                                    ProgressView()
+                                        .scaleEffect(0.9)
+                                        .padding(.trailing, 8)
                                 }
                             }
+                            
+                            if !usernameMessage.isEmpty {
+                                HStack {
+                                    Image(systemName: isUsernameValid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(isUsernameValid ? .green : .red)
+                                    
+                                    Text(usernameMessage)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(isUsernameValid ? .green : .red)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 4)
+                            }
+                        }
                         
-                        if isCheckingUsername {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        }
-                    }
-                    
-                    if !usernameMessage.isEmpty {
-                        Text(usernameMessage)
-                            .font(.caption)
-                            .foregroundColor(isUsernameValid ? .green : .red)
+                        Text("Username must be at least 3 characters and can only contain letters, numbers, and underscores.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
                     }
                 }
+                .padding(.horizontal, 24)
                 
-                // Update Button
-                Button(action: updateProfile) {
+                // Status Messages
+                if !errorMessage.isEmpty || !successMessage.isEmpty {
+                    VStack(spacing: 8) {
+                        if !errorMessage.isEmpty {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
+                                Text(errorMessage)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.red.opacity(0.1))
+                            )
+                        }
+                        
+                        if !successMessage.isEmpty {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text(successMessage)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.green)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.green.opacity(0.1))
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                
+                Spacer(minLength: 40)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            // Update Button - Fixed at bottom
+            Button(action: updateProfile) {
+                HStack(spacing: 12) {
                     if isUpdating {
-                        HStack {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            Text("Updating...")
-                                .foregroundColor(.white)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                    } else {
-                        Text("Update Profile")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.9)
+                        Text("Updating Profile...")
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.white)
-                            .cornerRadius(12)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                        Text("Update Profile")
+                            .font(.system(size: 17, weight: .semibold))
                     }
                 }
-                .disabled(isUpdating || !isUsernameValid || isCheckingUsername)
-                .padding(.top, 20)
-                
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .font(.caption)
-                }
-                
-                if !successMessage.isEmpty {
-                    Text(successMessage)
-                        .foregroundColor(.green)
-                        .font(.caption)
-                }
-                
-                Spacer()
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.blue, .purple]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             }
-            .padding()
-            .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage)
-            }
-            .onAppear {
-                username = currentUser?.username ?? ""
-            }
+            .disabled(isUpdating || !isUsernameValid || isCheckingUsername)
+            .opacity((isUpdating || !isUsernameValid || isCheckingUsername) ? 0.6 : 1.0)
+            .scaleEffect(isUpdating ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isUpdating)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 8)
+        }
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
+        .onAppear {
+            username = currentUser?.username ?? ""
         }
     }
     
