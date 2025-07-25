@@ -54,14 +54,17 @@ struct MainMessageView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .simultaneousGesture(
+                                    LongPressGesture(minimumDuration: 0.5)
+                                        .onEnded { _ in
+                                            chatToDelete = chat
+                                            showingDeleteAlert = true
+                                        }
+                                )
+                                .simultaneousGesture(
                                     TapGesture().onEnded {
                                         print("Opening chat with ID: \(chat.id), Other User ID: \(chat.otherUserId)")
                                     }
                                 )
-                                .onLongPressGesture {
-                                    chatToDelete = chat
-                                    showingDeleteAlert = true
-                                }
                                 
                                 Divider()
                                     .padding(.leading, 70)
@@ -90,6 +93,10 @@ struct MainMessageView: View {
             .navigationDestination(for: String.self) { chatId in
                 ChatView(chatId: chatId)
                     .toolbar(.hidden, for: .tabBar)
+                    .onDisappear {
+                        // Refresh unread counts when returning from chat
+                        refreshUnreadCounts()
+                    }
             }
         }
         .sheet(isPresented: $showingNewChat) {
@@ -101,6 +108,7 @@ struct MainMessageView: View {
             loadCurrentUser()
             setupRealtimeListener()
             setupNotificationObserver()
+            refreshUnreadCounts()
         }
         .onDisappear {
             NotificationCenter.default.removeObserver(self, name: NSNotification.Name("UserBlocked"), object: nil)
@@ -122,6 +130,50 @@ struct MainMessageView: View {
         }
     }
     
+    private func refreshUnreadCounts() {
+    guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+    
+    for (index, chat) in chats.enumerated() {
+        Firestore.firestore()
+            .collection("chats")
+            .document(chat.id)
+            .collection("messages")
+            .whereField("senderId", isEqualTo: chat.otherUserId)
+            .getDocuments { messageSnapshot, error in
+                var unreadCount = 0
+                
+                if let messages = messageSnapshot?.documents {
+                    for messageDoc in messages {
+                        let messageData = messageDoc.data()
+                        let readBy = messageData["readBy"] as? [String] ?? []
+                        let deletedFor = messageData["deletedFor"] as? [String] ?? []
+                        let isDeleted = messageData["deleted"] as? Bool ?? false
+                        
+                        if !readBy.contains(currentUserId) && 
+                           !deletedFor.contains(currentUserId) && 
+                           !isDeleted {
+                            unreadCount += 1
+                        }
+                    }
+                }
+                
+                DispatchQueue.main.async {
+                    if index < self.chats.count && self.chats[index].id == chat.id {
+                        self.chats[index] = ChatItem(
+                            id: chat.id,
+                            otherUserId: chat.otherUserId,
+                            lastMessage: chat.lastMessage,
+                            lastMessageTime: chat.lastMessageTime,
+                            lastMessageSenderId: chat.lastMessageSenderId,
+                            isUnread: chat.isUnread,
+                            unreadCount: unreadCount
+                        )
+                    }
+                }
+            }
+    }
+}
+
     private func loadCurrentUser() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
@@ -162,6 +214,7 @@ struct MainMessageView: View {
                     let blockedBy = userSnapshot?.data()?["blockedBy"] as? [String] ?? []
                     
                     var newChats: [ChatItem] = []
+                    let group = DispatchGroup()
                     
                     for document in documents {
                         let data = document.data()
@@ -170,7 +223,6 @@ struct MainMessageView: View {
                         
                         // Filter out blocked users
                         if blockedUsers.contains(otherUserId) || blockedBy.contains(otherUserId) {
-                            print("Filtering out blocked user: \(otherUserId)")
                             continue
                         }
                         
@@ -182,22 +234,51 @@ struct MainMessageView: View {
                         let lastMessageRead = data["lastMessageRead"] as? [String: Bool] ?? [:]
                         let isUnread = !(lastMessageRead[currentUserId] ?? true)
                         
-                        let chatItem = ChatItem(
-                            id: document.documentID,
-                            otherUserId: otherUserId,
-                            lastMessage: lastMessageText,
-                            lastMessageTime: lastMessageTimestamp.dateValue(),
-                            lastMessageSenderId: lastMessageSenderId,
-                            isUnread: isUnread
-                        )
-                        
-                        newChats.append(chatItem)
+                        // Count unread messages by querying the messages subcollection
+                        group.enter()
+                        Firestore.firestore()
+                            .collection("chats")
+                            .document(document.documentID)
+                            .collection("messages")
+                            .whereField("senderId", isEqualTo: otherUserId)
+                            .getDocuments { messageSnapshot, messageError in
+                                var unreadCount = 0
+                                
+                                if let messages = messageSnapshot?.documents {
+                                    for messageDoc in messages {
+                                        let messageData = messageDoc.data()
+                                        let readBy = messageData["readBy"] as? [String] ?? []
+                                        let deletedFor = messageData["deletedFor"] as? [String] ?? []
+                                        let isDeleted = messageData["deleted"] as? Bool ?? false
+                                        
+                                        // Count if message is not read by current user and not deleted
+                                        if !readBy.contains(currentUserId) && 
+                                           !deletedFor.contains(currentUserId) && 
+                                           !isDeleted {
+                                            unreadCount += 1
+                                        }
+                                    }
+                                }
+                                
+                                let chatItem = ChatItem(
+                                    id: document.documentID,
+                                    otherUserId: otherUserId,
+                                    lastMessage: lastMessageText,
+                                    lastMessageTime: lastMessageTimestamp.dateValue(),
+                                    lastMessageSenderId: lastMessageSenderId,
+                                    isUnread: isUnread,
+                                    unreadCount: unreadCount
+                                )
+                                
+                                newChats.append(chatItem)
+                                group.leave()
+                            }
                     }
                     
-                    DispatchQueue.main.async {
+                    group.notify(queue: .main) {
                         self.chats = newChats.sorted { $0.lastMessageTime > $1.lastMessageTime }
                         self.isLoading = false
-                        print("Loaded \(self.chats.count) chats (blocked users filtered)")
+                        print("Loaded \(self.chats.count) chats with unread counts")
                     }
                 }
             }
@@ -330,9 +411,21 @@ struct ChatRowView: View {
                     
                     Spacer()
                     
-                    Text(formatTime(chat.lastMessageTime))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        Text(formatTime(chat.lastMessageTime))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                        
+                        // Unread count badge
+                        if chat.unreadCount > 0 {
+                            Text("\(chat.unreadCount)")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(minWidth: 20, minHeight: 20)
+                                .background(Color.green)
+                                .clipShape(Circle())
+                        }
+                    }
                 }
                 
                 HStack {
@@ -347,12 +440,6 @@ struct ChatRowView: View {
                     }
                     
                     Spacer()
-                    
-//                    if chat.isUnread && chat.lastMessageSenderId != currentUserId {
-//                        Circle()
-//                            .fill(Color.green)
-//                            .frame(width: 8, height: 8)
-//                    }
                 }
                 
                 Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
@@ -428,6 +515,7 @@ struct ChatItem {
     let lastMessageTime: Date
     let lastMessageSenderId: String
     let isUnread: Bool
+    let unreadCount: Int
 }
 
 struct User {
@@ -441,3 +529,5 @@ struct User {
 #Preview {
     MainMessageView()
 }
+
+
