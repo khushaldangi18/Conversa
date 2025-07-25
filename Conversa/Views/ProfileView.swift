@@ -128,9 +128,28 @@ struct ProfileView: View {
                             ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green) {
                                 // Handle privacy
                             }
-                            ProfileSettingRow(icon: "questionmark.circle.fill", title: "Help & Support", color: .purple) {
-                                // Handle help
+                            
+                            NavigationLink(destination: HelpFeedbackView()) {
+                                HStack {
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .foregroundColor(.purple)
+                                        .frame(width: 30)
+                                    
+                                    Text("Help & Feedback")
+                                        .foregroundColor(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 14))
+                                }
+                                .padding()
+                                .background(Color(.systemBackground))
                             }
+                            
+                            Divider()
+                                .padding(.leading, 50)
                         }
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
