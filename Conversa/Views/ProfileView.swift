@@ -111,14 +111,14 @@ struct ProfileView: View {
                             
                             HStack(spacing: 4) {
                                 Image(systemName: "person.fill")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.green)
                                     .frame(width: 20)
                                 
                                 if let username = vm.chatUser?.username, !username.isEmpty {
                                     Text("@\(username)")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.black.opacity(0.6))
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
                                 }
                                 
                                 Text("•")
@@ -126,13 +126,13 @@ struct ProfileView: View {
                                     .padding(.horizontal, 2)
                                 
                                 Image(systemName: "envelope")
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.red)
                                     .frame(width: 20)
                                 
                                 Text(vm.chatUser?.email ?? "Loading...")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.black.opacity(0.6))
+                                    .foregroundColor(.secondary)
                             }
                         }
                         .padding()
