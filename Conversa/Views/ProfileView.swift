@@ -166,15 +166,15 @@ struct ProfileView: View {
                             Divider()
                                 .padding(.leading, 50)
                             
-                            ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange) {
-                                // Handle notifications
-                            }
+//                            ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange) {
+//                                  //Handle notifications
+//                            }
                             ProfileSettingRow(icon: "hand.raised.fill", title: "Blocked Users", color: .red) {
                                 showingBlockedUsers = true
                             }
-                            ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green) {
-                                // Handle privacy
-                            }
+//                            ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green) {
+//                                // Handle privacy
+//                            }
                             
                             NavigationLink(destination: HelpFeedbackView()) {
                                 HStack {

@@ -276,7 +276,7 @@ struct EditProfileView: View {
         .safeAreaInset(edge: .bottom) {
             // Update Button - Fixed at bottom
             Button(action: updateProfile) {
-                HStack(spacing: 12) {
+                HStack(spacing: 6) {
                     if isUpdating {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))

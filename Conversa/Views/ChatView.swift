@@ -164,10 +164,8 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.black.opacity(0.5))
                         .padding(8)
-                        .background(Color(.systemGray6))
-                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 16)

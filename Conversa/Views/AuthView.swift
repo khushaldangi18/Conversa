@@ -33,25 +33,25 @@ struct AuthView: View {
                         Spacer(minLength: 60)
                         
                         
-//                        ZStack {
-//                            Rectangle()
-//                                .fill(LinearGradient(
-//                                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.blue.opacity(0.05)]),
-//                                    startPoint: .topLeading,
-//                                    endPoint: .bottomTrailing
-//                                ))
-//                                .frame(width: 20, height: 20)
-//                            
-//                            Image("Logo")
-//                                .resizable()
-//                                .scaledToFit()
-//                                .font(.system(size: 20, weight: .light))
-//                                .foregroundStyle(LinearGradient(
-//                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
-//                                    startPoint: .topLeading,
-//                                    endPoint: .bottomTrailing
-//                                ))
-//                        }
+                        //                        ZStack {
+                        //                            Rectangle()
+                        //                                .fill(LinearGradient(
+                        //                                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color.blue.opacity(0.05)]),
+                        //                                    startPoint: .topLeading,
+                        //                                    endPoint: .bottomTrailing
+                        //                                ))
+                        //                                .frame(width: 20, height: 20)
+                        //
+                        //                            Image("Logo")
+                        //                                .resizable()
+                        //                                .scaledToFit()
+                        //                                .font(.system(size: 20, weight: .light))
+                        //                                .foregroundStyle(LinearGradient(
+                        //                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                        //                                    startPoint: .topLeading,
+                        //                                    endPoint: .bottomTrailing
+                        //                                ))
+                        //                        }
                         
                         VStack(spacing: 10) {
                             // App icon
@@ -217,10 +217,16 @@ struct LoginView: View {
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(Color.blue)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.blue, .purple]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .cornerRadius(16)
-                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
+                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, 40)
             .disabled(isLoading)
@@ -263,7 +269,7 @@ struct LoginView: View {
             
             // Set isLoggedIn to true to trigger navigation to ContentView
             self.isLoggedIn = true
-
+            
             // Set up presence for logged in user
             if let uid = result?.user.uid {
                 PresenceManager.shared.setupPresence(for: uid)
@@ -292,7 +298,7 @@ struct RegisterView: View {
     
     // Password validation criteria
     private var passwordCriteria: Bool {
-        password.count >= 8 && 
+        password.count >= 8 &&
         password.rangeOfCharacter(from: .uppercaseLetters) != nil &&
         password.rangeOfCharacter(from: .decimalDigits) != nil
     }
@@ -322,22 +328,17 @@ struct RegisterView: View {
                                 .frame(width: 90, height: 90)
                                 .overlay(
                                     Image(systemName: "camera.fill")
-                                        .font(.system(size: 34, weight: .medium))
-                                        .foregroundColor(.blue)
+                                        .font(.system(size: 35))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [.blue, .purple]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
                                 )
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         }
-                        
-                        // Edit overlay
-//                        Circle()
-//                            .fill(Color.blue)
-//                            .frame(width: 28, height: 28)
-//                            .overlay(
-//                                Image(systemName: "plus")
-//                                    .font(.system(size: 12, weight: .bold))
-//                                    .foregroundColor(.white)
-//                            )
-//                            .offset(x: 30, y: 30)
                     }
                 }
                 .sheet(isPresented: $showImagePicker) {
@@ -544,10 +545,16 @@ struct RegisterView: View {
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(Color.blue)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.blue, .purple]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .cornerRadius(16)
-                .shadow(color: .blue.opacity(0.3), radius: 12, x: 0, y: 6)
+                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, 40)
             .disabled(!isUsernameValid || !isPasswordValid || isCheckingUsername || isRegistering)
@@ -638,9 +645,9 @@ struct RegisterView: View {
                 return
             }
             
-            guard let uid = result?.user.uid else { 
+            guard let uid = result?.user.uid else {
                 self.isRegistering = false
-                return 
+                return
             }
             
             // Check username uniqueness with authenticated user
@@ -694,7 +701,7 @@ struct RegisterView: View {
                                 
                                 self.isRegistering = false
                                 self.isLoggedIn = true
-
+                                
                                 // Set up presence for new user
                                 if let uid = FirebaseManager.shared.auth.currentUser?.uid {
                                     PresenceManager.shared.setupPresence(for: uid)
@@ -707,9 +714,9 @@ struct RegisterView: View {
     }
     
     private func persistImageToStorage() {
-        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { 
+        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else {
             self.isRegistering = false
-            return 
+            return
         }
         
         let ref = FirebaseManager.shared.storage.reference(withPath: uid)
@@ -736,9 +743,9 @@ struct RegisterView: View {
                     return
                 }
                 
-                guard let url = url else { 
+                guard let url = url else {
                     self.isLoggedIn = true
-                    return 
+                    return
                 }
                 
                 // Update the user document with the photo URL
@@ -756,40 +763,6 @@ struct RegisterView: View {
     }
 }
 
-//struct ImagePicker: UIViewControllerRepresentable {
-//    @Binding var image: UIImage?
-//    
-//    func makeCoordinator() -> Coordinator {
-//        return Coordinator(parent: self)
-//    }
-//    
-//    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-//        let parent: ImagePicker
-//        
-//        init(parent: ImagePicker) {
-//            self.parent = parent
-//        }
-//        
-//        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-//            if let image = info[.originalImage] as? UIImage {
-//                parent.image = image
-//            }
-//            picker.dismiss(animated: true)
-//        }
-//        
-//        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-//            picker.dismiss(animated: true)
-//        }
-//    }
-//    
-//    func makeUIViewController(context: Context) -> UIImagePickerController {
-//        let picker = UIImagePickerController()
-//        picker.delegate = context.coordinator
-//        return picker
-//    }
-//    
-//    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-//}
 
 struct AuthView_Previews: PreviewProvider {
     static var previews: some View {
