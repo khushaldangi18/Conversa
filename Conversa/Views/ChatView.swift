@@ -24,6 +24,9 @@ struct ChatView: View {
     @State private var chatOpenedAt: Date = Date()
     @State private var seenStatusTimer: Timer?
     @State private var isViewActive = false
+    @State private var isTyping = false
+    @State private var showingUserProfile = false
+    @State private var keyboardHeight: CGFloat = 0
     @Environment(\.dismiss) private var dismiss
     
     private func confirmBlockUser() {
@@ -60,57 +63,101 @@ struct ChatView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Chat Header
+            // Enhanced Chat Header with tap gesture
             HStack {
                 Button {
-                    dismiss()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        dismiss()
+                    }
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.blue)
                 }
                 
-                // Profile Image
-                if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 35))
-                            .foregroundColor(.gray)
+                // Tappable profile section
+                Button {
+                    showingUserProfile = true
+                } label: {
+                    HStack(spacing: 12) {
+                        // Profile Image with online indicator
+                        ZStack(alignment: .bottomTrailing) {
+                            if let photoURL = otherUser?.photoURL, let url = URL(string: photoURL) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 35))
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(width: 35, height: 35)
+                                .clipShape(Circle())
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 35))
+                                    .foregroundColor(.gray)
+                            }
+                            
+                            // Online status indicator
+                            if onlineStatus == "online" {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 12, height: 12)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color(.systemBackground), lineWidth: 2)
+                                    )
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(otherUser?.fullName ?? "Unknown")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            HStack(spacing: 4) {
+                                if isTyping {
+                                    HStack(spacing: 2) {
+                                        ForEach(0..<3) { index in
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 4, height: 4)
+                                                .scaleEffect(isTyping ? 1.0 : 0.5)
+                                                .animation(
+                                                    Animation.easeInOut(duration: 0.6)
+                                                        .repeatForever()
+                                                        .delay(Double(index) * 0.2),
+                                                    value: isTyping
+                                                )
+                                        }
+                                        Text("typing...")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.green)
+                                    }
+                                } else if onlineStatus == "online" {
+                                    Text("Online")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.green)
+                                } else {
+                                    Text("Offline")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
                     }
-                    .frame(width: 35, height: 35)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 35))
-                        .foregroundColor(.gray)
                 }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
-                        .font(.system(size: 16, weight: .semibold))
-                    
-                    if onlineStatus == "online" {
-                        Text("Online")
-                            .font(.system(size: 12))
-                            .foregroundColor(.green)
-//                    } else if let lastSeen = lastSeen {
-//                        Text("Last seen \(formatLastSeen(lastSeen))")
-//                            .font(.system(size: 12))
-//                            .foregroundColor(.gray)
-                    } else {
-                        Text("Offline")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                    }
-                }
+                .buttonStyle(PlainButtonStyle())
                 
                 Spacer()
                 
                 Menu {
+                    Button("View Profile") {
+                        showingUserProfile = true
+                    }
+//                    Divider()
                     Button("Block User", role: .destructive) {
                         blockUser()
                     }
@@ -118,6 +165,9 @@ struct ChatView: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16))
                         .foregroundColor(.gray)
+                        .padding(8)
+                        .background(Color(.systemGray6))
+                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 16)
@@ -125,10 +175,16 @@ struct ChatView: View {
             .background(Color(.systemBackground))
             .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
             
-            // Messages List
+            // Messages List with enhanced animations
             if isLoading {
                 Spacer()
-                ProgressView("Loading messages...")
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Loading messages...")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
                 Spacer()
             } else {
                 ScrollViewReader { proxy in
@@ -143,16 +199,25 @@ struct ChatView: View {
                                         showingImagePreview = true
                                     },
                                     onLongPress: { message in
+                                        // Haptic feedback
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                                        impactFeedback.impactOccurred()
+                                        
                                         messageToDelete = message
                                         showingDeleteAlert = true
                                     },
                                     otherUserId: otherUser?.uid
                                 )
                                 .id(message.id)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.8).combined(with: .opacity),
+                                    removal: .scale(scale: 0.8).combined(with: .opacity)
+                                ))
                             }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+                        .padding(.bottom, keyboardHeight > 0 ? 8 : 0)
                     }
                     .onAppear {
                         if let lastMessage = messages.last {
@@ -168,58 +233,97 @@ struct ChatView: View {
                             }
                         }
                     }
+                    .onTapGesture {
+                        // Dismiss keyboard when tapping on messages
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
                 }
             }
             
-            // Message Input
-            HStack(spacing: 8) {
+            // Enhanced Message Input
+            HStack(spacing: 12) {
                 Button {
                     showingImagePicker = true
+                    // Haptic feedback
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
                 } label: {
                     Image(systemName: "photo.circle.fill")
                         .font(.system(size: 30))
                         .foregroundColor(.green)
+                        .scaleEffect(showingImagePicker ? 0.9 : 1.0)
+                        .animation(.easeInOut(duration: 0.1), value: showingImagePicker)
                 }
                 
-                HStack {
+                HStack(spacing: 8) {
                     TextField("Type a message..", text: $messageText, axis: .vertical)
                         .lineLimit(1...5)
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                        .padding(.leading, 4)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color(.systemGray6).opacity(0.5))
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color(.systemGray6))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(messageText.isEmpty ? Color.clear : Color.blue.opacity(0.3), lineWidth: 1)
+                                )
                         )
+                        .onChange(of: messageText) { _ in
+                            // Add typing indicator logic here if needed
+                        }
                     
                     if !messageText.isEmpty || isUploadingImage {
                         Button {
                             if !messageText.isEmpty {
-                                sendMessage()
+                                // Haptic feedback
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                                
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    sendMessage()
+                                }
                             }
                         } label: {
-                            if isUploadingImage {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .padding(.trailing, 6)
-                            } else {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundColor(.blue)
-                                    .padding(.trailing, 6)
+                            Group {
+                                if isUploadingImage {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .font(.system(size: 28))
+                                        .foregroundColor(.blue)
+                                }
                             }
+                            .scaleEffect(messageText.isEmpty ? 0.8 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: messageText.isEmpty)
                         }
                         .disabled(isUploadingImage)
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .background(Color(.systemGray6))
-                .cornerRadius(20)
             }
+            .frame(alignment: .bottom)
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
             .background(Color(.systemBackground))
+            .animation(.easeInOut(duration: 0.2), value: !messageText.isEmpty)
         }
         .navigationBarHidden(true)
+        .sheet(isPresented: $showingUserProfile) {
+            UserProfileView(userId: otherUser?.uid ?? "")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    keyboardHeight = keyboardFrame.height
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                keyboardHeight = 0
+            }
+        }
         .onAppear {
             isViewActive = true
             loadOtherUser()
@@ -660,7 +764,8 @@ struct MessageBubbleView: View {
     let isCurrentUser: Bool
     let onImageTap: (String) -> Void
     let onLongPress: (Message) -> Void
-    let otherUserId: String? // Add this parameter
+    let otherUserId: String?
+    @State private var isPressed = false
     
     var body: some View {
         HStack {
@@ -676,6 +781,7 @@ struct MessageBubbleView: View {
                             .scaledToFit()
                             .frame(maxWidth: 200, maxHeight: 200)
                             .cornerRadius(12)
+                            .scaleEffect(isPressed ? 0.95 : 1.0)
                             .onTapGesture {
                                 onImageTap(message.text)
                             }
@@ -685,20 +791,37 @@ struct MessageBubbleView: View {
                             .frame(width: 200, height: 150)
                             .overlay(
                                 ProgressView()
+                                    .scaleEffect(0.8)
                             )
                     }
-                    .onLongPressGesture {
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        onLongPress(message)
+                    }
+                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .onLongPressGesture(minimumDuration: 0.1, maximumDistance: 50) { pressing in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isPressed = pressing
+                        }
+                    } perform: {
                         onLongPress(message)
                     }
                 } else {
                     Text(message.text)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(message.deleted ? Color(.systemGray4) : (isCurrentUser ? Color.blue : Color(.systemGray5)))
+                        .background(
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(message.deleted ? Color(.systemGray4) : (isCurrentUser ? Color.blue : Color(.systemGray5)))
+                                .shadow(color: .black.opacity(0.1), radius: 1, x: 0, y: 1)
+                        )
                         .foregroundColor(message.deleted ? .secondary : (isCurrentUser ? .white : .primary))
-                        .cornerRadius(18)
                         .italic(message.deleted)
-                        .onLongPressGesture {
+                        .scaleEffect(isPressed ? 0.95 : 1.0)
+                        .onLongPressGesture(minimumDuration: 0.1, maximumDistance: 50) { pressing in
+                            withAnimation(.easeInOut(duration: 0.1)) {
+                                isPressed = pressing
+                            }
+                        } perform: {
                             onLongPress(message)
                         }
                 }
@@ -708,26 +831,29 @@ struct MessageBubbleView: View {
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     
-                    // Read receipt indicator for sent messages
+                    // Enhanced read receipt with animation
                     if isCurrentUser {
                         if let otherUserId = otherUserId, message.readBy.contains(otherUserId) {
-                            Image(systemName: "checkmark.circle.fill") // ● Blue filled
+                            Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 14))
                                 .foregroundColor(.blue)
+                                .transition(.scale.combined(with: .opacity))
                         } else {
-                            Image(systemName: "checkmark.circle")      // ○ Gray empty
-                                .font(.system(size: 15))
+                            Image(systemName: "checkmark.circle")
+                                .font(.system(size: 14))
                                 .foregroundColor(.gray)
                         }
                     }
                 }
                 .padding(.horizontal, 4)
+                .animation(.easeInOut(duration: 0.3), value: message.readBy)
             }
             
             if !isCurrentUser {
                 Spacer()
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: isPressed)
     }
     
     private func formatTime(_ date: Date) -> String {

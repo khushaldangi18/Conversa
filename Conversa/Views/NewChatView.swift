@@ -186,15 +186,16 @@ struct NewChatView: View {
                             let email = data["email"] as? String ?? ""
                             let profileImageUrl = data["photoURL"] as? String ?? ""
                             let username = data["username"] as? String ?? ""
-                            
+                            let fullName = data["fullName"] as? String ?? ""
+
                             // Filter by search text (username or email)
                             let matchesUsername = username.lowercased().contains(searchTextLower)
                             let matchesEmail = email.lowercased().contains(searchTextLower)
-                            
+
                             if matchesUsername || matchesEmail {
-                                return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl)
+                                return ChatUser(uid: uid, email: email, username: username, profileImageUrl: profileImageUrl, fullName: fullName)
                             }
-                            
+
                             return nil
                         } ?? []
                 }

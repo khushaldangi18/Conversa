@@ -153,7 +153,8 @@ struct HelpFeedbackView: View {
                 uid: uid,
                 email: email,
                 username: username,
-                profileImageUrl: profileImageUrl
+                profileImageUrl: profileImageUrl,
+                fullName: data["fullName"] as? String ?? ""
             )
         }
     }

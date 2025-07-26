@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ChatUser {
-    let uid, email, username, profileImageUrl: String
+    let uid, email, username, profileImageUrl, fullName: String
 }
 
 class ProfileViewModel: ObservableObject {
@@ -35,12 +35,14 @@ class ProfileViewModel: ObservableObject {
             let email = data["email"] as? String ?? ""
             let username = data["username"] as? String ?? ""
             let profileImageUrl = data["photoURL"] as? String ?? ""
-            
+            let fullName = data["fullName"] as? String ?? ""
+
             self.chatUser = ChatUser(
                 uid: uid, 
                 email: email, 
                 username: username, 
-                profileImageUrl: profileImageUrl
+                profileImageUrl: profileImageUrl,
+                fullName: fullName
             )
             
             self.loadProfileImage(from: profileImageUrl)
@@ -83,7 +85,7 @@ struct ProfileView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         // Profile image and user info section
-                        VStack(spacing: 15) {
+                        VStack(spacing: 8) {
                             if let image = vm.profileImage {
                                 Image(uiImage: image)
                                     .resizable()
@@ -102,15 +104,39 @@ struct ProfileView: View {
                                     .shadow(radius: 6)
                                     .padding(.top, 20)
                             }
-
-                            // Username displayed above email
-                            Text("@\(vm.chatUser?.username ?? "")")
+                            
+                            // Full name displayed above username
+                            Text(vm.chatUser?.fullName ?? "")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.primary)
                             
-                            Text(vm.chatUser?.email ?? "Loading...")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
+                            
+                            
+                            HStack(spacing: 4){
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.green)
+                                    .frame(width: 20)
+                                // Username displayed below full name
+                                if let username = vm.chatUser?.username, !username.isEmpty {
+                                    Text("@\(username)")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.black.opacity(0.6))
+                                }
+                                Divider()
+                                    .frame(width: 3 ,height: 3)
+                                    .background(Color.black.opacity(0.5))
+                                    .cornerRadius(10)
+                                    .padding(.leading, 5)
+                                    .padding(.trailing, 5)
+                                Image(systemName: "envelope")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.red)
+                                    .frame(width: 20)
+                                Text(vm.chatUser?.email ?? "Loading...")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.black.opacity(0.6))
+                            }
                         }
                         .padding()
                         

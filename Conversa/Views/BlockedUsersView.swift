@@ -133,7 +133,8 @@ struct BlockedUsersView: View {
                             uid: document.documentID,
                             email: data["email"] as? String ?? "",
                             username: data["username"] as? String ?? "",
-                            profileImageUrl: data["photoURL"] as? String ?? ""
+                            profileImageUrl: data["photoURL"] as? String ?? "",
+                            fullName: data["fullName"] as? String ?? ""
                         )
                     } ?? []
                 }

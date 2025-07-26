@@ -6,6 +6,7 @@ import FirebaseStorage
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var username: String = ""
+    @State private var fullName: String = ""
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var isUpdating = false
@@ -128,6 +129,35 @@ struct EditProfileView: View {
                 
                 // Username Section
                 VStack(spacing: 20) {
+                    // Full Name Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.green)
+                            Text("Full Name")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                        }
+                        
+                        TextField("Enter your full name", text: $fullName)
+                            .font(.system(size: 16))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(.systemGray6))
+                            )
+                            .autocapitalization(.words)
+                            .disabled(isUpdating)
+                        
+                        Text("Your display name that others will see.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+                    }
+                    
+                    // Username Section
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "at")
@@ -288,6 +318,7 @@ struct EditProfileView: View {
         }
         .onAppear {
             username = currentUser?.username ?? ""
+            fullName = currentUser?.fullName ?? ""
         }
     }
     
@@ -332,6 +363,11 @@ struct EditProfileView: View {
         // Update username if changed
         if username != currentUser?.username && !username.isEmpty {
             updateData["username"] = username.lowercased()
+        }
+        
+        // Update full name if changed
+        if fullName != currentUser?.fullName && !fullName.isEmpty {
+            updateData["fullName"] = fullName
         }
         
         // Update profile image if selected

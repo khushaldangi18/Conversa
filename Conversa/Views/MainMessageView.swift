@@ -405,7 +405,7 @@ struct ChatRowView: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(otherUser?.username.isEmpty == false ? "\(otherUser?.username ?? "")" : otherUser?.fullName ?? "Unknown")
+                    Text(otherUser?.fullName ?? "Unknown")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.primary)
                     
