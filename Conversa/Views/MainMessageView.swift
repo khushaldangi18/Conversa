@@ -11,6 +11,31 @@ struct MainMessageView: View {
     @State private var showingDeleteAlert = false
     @State private var chatToDelete: ChatItem?
     @State private var navigationPath = NavigationPath()
+    @State private var isSearching = false
+    @State private var searchText = ""
+    @State private var chatUsers: [String: User] = [:] // Cache for user data
+    
+    private var filteredChats: [ChatItem] {
+        if searchText.isEmpty {
+            return chats
+        } else {
+            return chats.filter { chat in
+                let searchTextLower = searchText.lowercased()
+                
+                // Search in last message
+                let messageMatch = chat.lastMessage.localizedCaseInsensitiveContains(searchText)
+                
+                // Search in user's name and username
+                if let user = chatUsers[chat.otherUserId] {
+                    let nameMatch = user.fullName.lowercased().contains(searchTextLower)
+                    let usernameMatch = user.username.lowercased().contains(searchTextLower)
+                    return messageMatch || nameMatch || usernameMatch
+                }
+                
+                return messageMatch
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -21,9 +46,63 @@ struct MainMessageView: View {
                         .font(.system(size: 30, weight: .bold))
                         .foregroundColor(.primary)
                     Spacer()
+                    
+                    if !isSearching {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isSearching = true
+                            }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.blue)
+                        }
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
+                
+                // Search bar
+                if isSearching {
+                    HStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 16))
+                            
+                            TextField("Search chats...", text: $searchText)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                            
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 16))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                        
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isSearching = false
+                                searchText = ""
+                            }
+                        } label: {
+                            Text("Cancel")
+                                .font(.system(size: 16))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 
                 // Chat List Display Logic
                 if isLoading {
@@ -47,7 +126,7 @@ struct MainMessageView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(chats, id: \.id) { chat in
+                            ForEach(filteredChats, id: \.id) { chat in
                                 NavigationLink(value: chat.id) {
                                     ChatRowView(chat: chat, currentUserId: currentUser?.uid ?? "")
                                         .contentShape(Rectangle())
@@ -69,6 +148,21 @@ struct MainMessageView: View {
                                 Divider()
                                     .padding(.leading, 70)
                                     .padding(.trailing, 10)
+                            }
+                            
+                            if filteredChats.isEmpty && !searchText.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.gray)
+                                    Text("No chats found")
+                                        .font(.title3)
+                                        .foregroundColor(.gray)
+                                    Text("Try searching with different keywords")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.top, 50)
                             }
                         }
                     }
@@ -224,6 +318,17 @@ struct MainMessageView: View {
                         // Filter out blocked users
                         if blockedUsers.contains(otherUserId) || blockedBy.contains(otherUserId) {
                             continue
+                        }
+                        
+                        // Load user data for search functionality
+                        group.enter()
+                        UserCacheManager.shared.getUser(uid: otherUserId) { user in
+                            if let user = user {
+                                DispatchQueue.main.async {
+                                    self.chatUsers[otherUserId] = user
+                                }
+                            }
+                            group.leave()
                         }
                         
                         let lastMessage = data["lastMessage"] as? [String: Any] ?? [:]
