@@ -76,13 +76,16 @@ struct ChatRequestsView: View {
     }
     
     private func handleRequest(_ request: ChatRequest, action: RequestAction) {
-        let batch = FirebaseManager.shared.firestore.batch()
-        
-        // Update request status
-        let requestRef = FirebaseManager.shared.firestore.collection("chatRequests").document(request.id)
-        batch.updateData(["status": action == .accept ? "accepted" : "rejected"], forDocument: requestRef)
+        guard let currentUserId = FirebaseManager.shared.auth.currentUser?.uid else { return }
         
         if action == .accept {
+            // Accept request: Update status and create chat
+            let batch = FirebaseManager.shared.firestore.batch()
+            
+            // Update request status to accepted
+            let requestRef = FirebaseManager.shared.firestore.collection("chatRequests").document(request.id)
+            batch.updateData(["status": "accepted"], forDocument: requestRef)
+            
             // Create new chat
             let newChatData: [String: Any] = [
                 "participants": [request.senderId, request.recipientId],
@@ -101,15 +104,28 @@ struct ChatRequestsView: View {
             
             let chatRef = FirebaseManager.shared.firestore.collection("chats").document()
             batch.setData(newChatData, forDocument: chatRef)
-        }
-        
-        batch.commit { error in
-            if let error = error {
-                print("Error handling request: \(error)")
-            } else {
-                // Remove from local list
-                DispatchQueue.main.async {
-                    self.requests.removeAll { $0.id == request.id }
+            
+            batch.commit { error in
+                if let error = error {
+                    print("Error accepting request: \(error)")
+                } else {
+                    print("Request accepted successfully")
+                    DispatchQueue.main.async {
+                        self.requests.removeAll { $0.id == request.id }
+                    }
+                }
+            }
+        } else {
+            // Reject request: Only update status, don't create chat
+            let requestRef = FirebaseManager.shared.firestore.collection("chatRequests").document(request.id)
+            requestRef.updateData(["status": "rejected"]) { error in
+                if let error = error {
+                    print("Error rejecting request: \(error)")
+                } else {
+                    print("Request rejected successfully")
+                    DispatchQueue.main.async {
+                        self.requests.removeAll { $0.id == request.id }
+                    }
                 }
             }
         }

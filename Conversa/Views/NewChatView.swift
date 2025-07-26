@@ -8,6 +8,8 @@ struct NewChatView: View {
     @State private var users = [ChatUser]()
     @State private var isLoading = false
     @State private var errorMessage = ""
+    @State private var showingRequestSentAlert = false
+    @State private var requestSentToUser = ""
     
     let onChatCreated: (String) -> Void
     
@@ -137,6 +139,13 @@ struct NewChatView: View {
                     }
                 }
             }
+        }
+        .alert("Request Sent!", isPresented: $showingRequestSentAlert) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Your chat request has been sent to \(requestSentToUser). They will be notified and can accept or decline your request.")
         }
     }
     
@@ -314,8 +323,9 @@ struct NewChatView: View {
                     if let error = error {
                         errorMessage = "Failed to send chat request: \(error.localizedDescription)"
                     } else {
-                        dismiss()
-                        // Show success message or navigate back
+                        // Show success alert
+                        requestSentToUser = user.username.isEmpty ? user.email : user.username
+                        showingRequestSentAlert = true
                     }
                 }
             }
