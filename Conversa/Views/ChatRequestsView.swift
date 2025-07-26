@@ -110,22 +110,18 @@ struct ChatRequestsView: View {
                     print("Error accepting request: \(error)")
                 } else {
                     print("Request accepted successfully")
-                    DispatchQueue.main.async {
-                        self.requests.removeAll { $0.id == request.id }
-                    }
+                    // Remove the manual array update - let the listener handle it
                 }
             }
         } else {
-            // Reject request: Only update status, don't create chat
+            // Reject request: Update status to rejected
             let requestRef = FirebaseManager.shared.firestore.collection("chatRequests").document(request.id)
             requestRef.updateData(["status": "rejected"]) { error in
                 if let error = error {
                     print("Error rejecting request: \(error)")
                 } else {
                     print("Request rejected successfully")
-                    DispatchQueue.main.async {
-                        self.requests.removeAll { $0.id == request.id }
-                    }
+                    // Remove the manual array update - let the listener handle it
                 }
             }
         }
@@ -182,6 +178,7 @@ struct ChatRequestRow: View {
                         .background(Color.red)
                         .clipShape(Circle())
                 }
+                .buttonStyle(PlainButtonStyle())
                 
                 Button {
                     onAction(.accept)
@@ -192,6 +189,7 @@ struct ChatRequestRow: View {
                         .background(Color.green)
                         .clipShape(Circle())
                 }
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(.vertical, 8)
