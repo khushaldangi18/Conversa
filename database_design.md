@@ -13,6 +13,7 @@
   - `fcmToken`: String (for push notifications)
   - `blockedUsers`: Array<String> (UIDs of blocked users)
   - `blockedBy`: Array<String> (UIDs of users who blocked this user)
+  - `isPublic`: Boolean (true for public profile, false for private)
   - `statusRef`: String (reference to Realtime Database path)
 
 ### chats
@@ -54,6 +55,14 @@
   - `timestamp`: Timestamp
   - `read`: Boolean (default: false)
   - `delivered`: Boolean (default: false)
+
+### chatRequests
+- Document ID: Auto-generated
+  - `senderId`: String (UID of user sending request)
+  - `recipientId`: String (UID of user receiving request)
+  - `message`: String (optional message with request)
+  - `timestamp`: Timestamp
+  - `status`: String (pending/accepted/rejected)
 
 ## Storage Structure
 

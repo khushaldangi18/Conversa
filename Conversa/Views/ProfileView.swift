@@ -73,15 +73,18 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @StateObject private var vm = ProfileViewModel()
     @State private var showingSignOutAlert = false
-    @State private var showingEditProfile = false
     @State private var showingBlockedUsers = false
     @Environment(\.presentationMode) var presentationMode
     @State private var navigateToLogin = false
     @EnvironmentObject private var appState: AppState
+    @State private var showingHelpFeedback = false
+    @State private var showingChatRequests = false
+    @State private var showingPrivacySettings = false
+    @State private var isProfilePublic = true
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) {
                 ScrollView {
                     VStack(spacing: 20) {
                         // Profile image and user info section
@@ -93,46 +96,40 @@ struct ProfileView: View {
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                                     .shadow(radius: 6)
-                                    .padding(.top, 20)
                             } else {
-                                // Loading state - show placeholder
                                 ProgressView()
                                     .frame(width: 120, height: 120)
                                     .scaledToFill()
                                     .background(Color.gray.opacity(0.2))
                                     .clipShape(Circle())
                                     .shadow(radius: 6)
-                                    .padding(.top, 20)
                             }
                             
-                            // Full name displayed above username
                             Text(vm.chatUser?.fullName ?? "")
                                 .font(.system(size: 22, weight: .bold))
                                 .foregroundColor(.primary)
                             
-                            
-                            
-                            HStack(spacing: 4){
+                            HStack(spacing: 4) {
                                 Image(systemName: "person.fill")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.green)
                                     .frame(width: 20)
-                                // Username displayed below full name
+                                
                                 if let username = vm.chatUser?.username, !username.isEmpty {
                                     Text("@\(username)")
                                         .font(.system(size: 16))
                                         .foregroundColor(.black.opacity(0.6))
                                 }
-                                Divider()
-                                    .frame(width: 3 ,height: 3)
-                                    .background(Color.black.opacity(0.5))
-                                    .cornerRadius(10)
-                                    .padding(.leading, 5)
-                                    .padding(.trailing, 5)
+                                
+                                Text("•")
+                                    .foregroundColor(.black.opacity(0.5))
+                                    .padding(.horizontal, 2)
+                                
                                 Image(systemName: "envelope")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.red)
                                     .frame(width: 20)
+                                
                                 Text(vm.chatUser?.email ?? "Loading...")
                                     .font(.system(size: 14))
                                     .foregroundColor(.black.opacity(0.6))
@@ -163,18 +160,62 @@ struct ProfileView: View {
                                 .background(Color(.systemBackground))
                             }
                             
+                            if !isProfilePublic {
+                                Divider()
+                                    .padding(.leading, 50)
+                                
+                                Button {
+                                    showingChatRequests = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "person.2.badge.plus")
+                                            .foregroundColor(.purple)
+                                            .frame(width: 30)
+                                        
+                                        Text("Chat Requests")
+                                            .foregroundColor(.primary)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.gray)
+                                            .font(.system(size: 14))
+                                    }
+                                    .padding()
+                                    .background(Color(.systemBackground))
+                                }
+                            }
+                            
                             Divider()
                                 .padding(.leading, 50)
                             
-//                            ProfileSettingRow(icon: "bell.fill", title: "Notifications", color: .orange) {
-//                                  //Handle notifications
-//                            }
                             ProfileSettingRow(icon: "hand.raised.fill", title: "Blocked Users", color: .red) {
                                 showingBlockedUsers = true
                             }
-//                            ProfileSettingRow(icon: "lock.fill", title: "Privacy", color: .green) {
-//                                // Handle privacy
-//                            }
+                            
+                            Button {
+                                showingPrivacySettings = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "lock.fill")
+                                        .foregroundColor(.green)
+                                        .frame(width: 30)
+                                    
+                                    Text("Privacy")
+                                        .foregroundColor(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.gray)
+                                        .font(.system(size: 14))
+                                }
+                                .padding()
+                                .background(Color(.systemBackground))
+                            }
+                            
+                            Divider()
+                                .padding(.leading, 50)
                             
                             NavigationLink(destination: HelpFeedbackView()) {
                                 HStack {
@@ -194,17 +235,12 @@ struct ProfileView: View {
                                 .padding()
                                 .background(Color(.systemBackground))
                             }
-                            
-                            Divider()
-                                .padding(.leading, 50)
                         }
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
                         .padding(.horizontal)
                     }
                 }
-                
-                Spacer() // Push content up and sign out button to bottom
                 
                 // Sign out button at bottom
                 Button(action: {
@@ -240,6 +276,12 @@ struct ProfileView: View {
             .sheet(isPresented: $showingBlockedUsers) {
                 BlockedUsersView()
             }
+            .sheet(isPresented: $showingChatRequests) {
+                ChatRequestsView()
+            }
+            .sheet(isPresented: $showingPrivacySettings) {
+                PrivacySettingsView(isProfilePublic: $isProfilePublic)
+            }
             .fullScreenCover(isPresented: $navigateToLogin) {
                 AuthView()
                     .onDisappear {
@@ -247,12 +289,12 @@ struct ProfileView: View {
                     }
             }
             .onAppear {
-                // Check auth state whenever the view appears
                 checkAuthState()
+                loadProfileType()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .interactiveDismissDisabled(true) // Prevent swipe-to-dismiss
+        .interactiveDismissDisabled(true)
     }
     
     func signOut() {
@@ -274,6 +316,30 @@ struct ProfileView: View {
         // If user is not authenticated, navigate to login
         if FirebaseManager.shared.auth.currentUser == nil {
             navigateToLogin = true
+        }
+    }
+    
+    private func loadProfileType() {
+        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        
+        FirebaseManager.shared.firestore.collection("users").document(uid).getDocument { snapshot, error in
+            if let data = snapshot?.data() {
+                DispatchQueue.main.async {
+                    self.isProfilePublic = data["isPublic"] as? Bool ?? true
+                }
+            }
+        }
+    }
+    
+    private func updateProfileType(isPublic: Bool) {
+        guard let uid = FirebaseManager.shared.auth.currentUser?.uid else { return }
+        
+        FirebaseManager.shared.firestore.collection("users").document(uid).updateData([
+            "isPublic": isPublic
+        ]) { error in
+            if let error = error {
+                print("Failed to update profile type: \(error)")
+            }
         }
     }
 }

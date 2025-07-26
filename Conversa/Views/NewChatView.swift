@@ -102,7 +102,7 @@ struct NewChatView: View {
                             
                             Menu {
                                 Button("Start Chat") {
-                                    createChat(with: user)
+                                    handleChatAction(with: user)
                                 }
                                 Button("Block User", role: .destructive) {
                                     blockUser(user)
@@ -202,6 +202,26 @@ struct NewChatView: View {
         }
     }
     
+    private func handleChatAction(with user: ChatUser) {
+        // First check if user profile is public or private
+        FirebaseManager.shared.firestore.collection("users").document(user.uid).getDocument { snapshot, error in
+            if let error = error {
+                errorMessage = "Failed to check user profile: \(error.localizedDescription)"
+                return
+            }
+            
+            let isPublic = snapshot?.data()?["isPublic"] as? Bool ?? true
+            
+            if isPublic {
+                // Public profile - create chat directly
+                createChat(with: user)
+            } else {
+                // Private profile - send chat request
+                sendChatRequest(to: user)
+            }
+        }
+    }
+    
     private func createChat(with user: ChatUser) {
         guard let currentUser = FirebaseManager.shared.auth.currentUser else {
             errorMessage = "Not logged in"
@@ -255,6 +275,48 @@ struct NewChatView: View {
                     
                     dismiss()
                     onChatCreated(chatRef.documentID)
+                }
+            }
+    }
+    
+    private func sendChatRequest(to user: ChatUser) {
+        guard let currentUser = FirebaseManager.shared.auth.currentUser else {
+            errorMessage = "Not logged in"
+            return
+        }
+        
+        // Check if request already exists
+        FirebaseManager.shared.firestore.collection("chatRequests")
+            .whereField("senderId", isEqualTo: currentUser.uid)
+            .whereField("recipientId", isEqualTo: user.uid)
+            .whereField("status", isEqualTo: "pending")
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    errorMessage = "Failed to check existing requests: \(error.localizedDescription)"
+                    return
+                }
+                
+                if let snapshot = snapshot, !snapshot.documents.isEmpty {
+                    errorMessage = "Chat request already sent"
+                    return
+                }
+                
+                // Create new chat request
+                let requestData: [String: Any] = [
+                    "senderId": currentUser.uid,
+                    "recipientId": user.uid,
+                    "message": "Hi! I'd like to start a chat with you.",
+                    "timestamp": Timestamp(),
+                    "status": "pending"
+                ]
+                
+                FirebaseManager.shared.firestore.collection("chatRequests").addDocument(data: requestData) { error in
+                    if let error = error {
+                        errorMessage = "Failed to send chat request: \(error.localizedDescription)"
+                    } else {
+                        dismiss()
+                        // Show success message or navigate back
+                    }
                 }
             }
     }

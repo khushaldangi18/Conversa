@@ -675,7 +675,8 @@ struct RegisterView: View {
                         "username": self.username.lowercased(),
                         "createdAt": Timestamp(),
                         "lastActive": Timestamp(),
-                        "status": "online"
+                        "status": "online",
+                        "isPublic": true // Default to public profile
                     ]
                     
                     FirebaseManager.shared.firestore.collection("users").document(uid).setData(userData) { error in
