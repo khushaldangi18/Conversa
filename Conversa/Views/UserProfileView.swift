@@ -57,10 +57,10 @@ struct UserProfileView: View {
                         
                         HStack(spacing: 4) {
                             Circle()
-                                .fill(onlineStatus == "online" ? Color.green : Color.black.opacity(0.5))
+                                .fill(onlineStatus == "online" ? Color.green : Color.secondary.opacity(0))
                                 .frame(width: 6, height: 6)
                             Text(onlineStatus == "online" ? "Online" : "Offline")
-                                .foregroundStyle(onlineStatus == "online" ? .green : .black.opacity(0.5))
+                                .foregroundStyle(onlineStatus == "online" ? .green : .secondary)
                                 .font(.caption)
                             
                         }
