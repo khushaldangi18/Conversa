@@ -7,24 +7,34 @@ This document outlines the organized file structure for the Conversa chat applic
 
 ```
 Conversa/
-├── ChatoraApp.swift                    # Main app entry point
-├── ContentView.swift                   # Root view controller
-├── AuthenticationManager.swift         # Authentication logic
-├── GoogleService-Info.plist           # Firebase configuration
-├── Assets.xcassets/                    # App assets and images
-├── Preview Content/                    # Preview assets for SwiftUI
-├── Models/                             # Data models
-│   └── User.swift                      # User data model
-└── Views/                              # All UI views organized by feature
-    ├── Authentication/                 # Authentication-related views
-    │   ├── LoginView.swift            # User login interface
-    │   └── RegisterView.swift         # User registration interface
-    ├── Components/                     # Reusable UI components
-    │   ├── LoadingView.swift          # Loading screen component
-    │   ├── WelcomeHeaderView.swift    # Welcome header component
-    │   └── SharedComponents.swift     # Other shared UI components
-    └── Home/                          # Home screen views
-        └── HomeView.swift             # Main home interface
+├── AppState.swift # App-wide state management
+├── ContentView.swift # Root view
+├── ConversaApp.swift # Main app entry point
+├── GoogleService-Info.plist # Firebase configuration
+├── Assets.xcassets/ # App assets and images
+│ ├── AccentColor.colorset/
+│ ├── AppIcon.appiconset/
+│ └── Logo.imageset/
+├── Components/ # Reusable UI components
+│ └── CachedAsyncImage.swift
+├── Managers/ # Logic & managers
+│ └── PresenceManager.swift
+├── Preview Content/ # SwiftUI preview assets
+│ └── Preview Assets.xcassets/
+├── Utils/ # Utility helpers
+│ ├── ChatImagePicker.swift
+│ ├── ImageCache.swift
+│ ├── ImagePicker.swift
+│ └── UserCacheManager.swift
+└── Views/ # All UI screens
+├── AuthView.swift # Authentication screen
+├── BlockedUsersView.swift # Blocked users list
+├── ChatView.swift # Main chat interface
+├── EditProfileView.swift # Edit profile screen
+├── ImagePreviewView.swift # Full image preview
+├── MainMessageView.swift # Messages home screen
+├── NewChatView.swift # Start new chat
+└── ProfileView.swift # User profile screen
 ```
 
 ## File Descriptions
